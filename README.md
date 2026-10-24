@@ -16,7 +16,7 @@
 
 - **رابط السكربت:** `API_URL` في أعلى سكربت [index.html](./index.html)، وهو رابط `/exec` لنشر السكربت المرقّم (Execute as: Me، وWho has access: Anyone).
 - **كلمة المرور:** `DASHBOARD_PASSWORD` في `Config.local.js` لسكربت الأتمتة، ثم `clasp push`. وتغييرها يُخرج كل من دخل.
-- **تحديث السكربت:** النشر المرقّم ثابت على نسخته: كل `clasp push` بعده يغيّر `/dev` وحده، فبعد كل تعديل في السكربت: Deploy ← Manage deployments ← Edit ← Version: New version، وإلا بقيت اللوحة على الكود القديم بلا تنبيه.
+- **تحديث السكربت:** النشر المرقّم ثابت على نسخته: كل `clasp push` بعده يغيّر `/dev` وحده، فبعد كل تعديل في السكربت: `clasp push` ثم `clasp deploy -i AKfycbwxv2ueJUqhNRX-rBSBGLqzm9ReKH59pWftoYi-cfRF7CdU8MK60XJZeyuKI2qhqm7I` (نسخة جديدة للنشر نفسه، فلا يتغير الرابط)، أو Manage deployments ← Edit ← New version؛ وإلا بقيت اللوحة على الكود القديم بلا تنبيه.
 - **النشر:** GitHub Pages من فرع `main` وجذر المستودع. ولا أدوات بناء: Alpine.js وTailwind من CDN.
 
 والصفحة ترسل طلباتها بـ `fetch` ونوع `text/plain`، فلا يرسل المتصفح طلب CORS تمهيدياً لا يجيب عنه Apps Script.

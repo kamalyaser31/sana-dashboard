@@ -74,9 +74,8 @@
           <thead><tr><template x-for="h in data.totalsHeaders" :key="h"><th scope="col" x-text="h"></th></template></tr></thead>
           <tbody>
             <template x-for="(row, i) in data.totals" :key="i">
-              <tr><template x-for="(cell, j) in row" :key="j">
-                <th x-show="j === 0" scope="row" x-text="cell"></th>
-                <td x-show="j > 0" x-text="cell"></td>
+              <tr><th scope="row" x-text="row[0]"></th><template x-for="(cell, j) in row.slice(1)" :key="j">
+                <td x-text="cell"></td>
               </template></tr>
             </template>
           </tbody>
@@ -93,9 +92,8 @@
           <thead><tr><template x-for="h in data.monthlyHeaders.slice(2)" :key="h"><th scope="col" x-text="h"></th></template></tr></thead>
           <tbody>
             <template x-for="(row, i) in monthRows()" :key="i">
-              <tr><template x-for="(cell, j) in row.slice(2)" :key="j">
-                <th x-show="j === 0" scope="row" x-text="cell"></th>
-                <td x-show="j > 0" x-text="cell"></td>
+              <tr><th scope="row" x-text="row[2]"></th><template x-for="(cell, j) in row.slice(3)" :key="j">
+                <td x-text="cell"></td>
               </template></tr>
             </template>
           </tbody>
@@ -308,7 +306,9 @@
       <form @submit.prevent="saveExpense()" class="flex flex-wrap gap-4 items-end">
         <div>
           <label for="exp-month" class="font-bold block">الشهر</label>
-          <input id="exp-month" type="month" x-model="expMonth" required class="border border-gray-700 p-1">
+          <select id="exp-month" x-model="expMonth" required class="border border-gray-700 p-1">
+            <template x-for="m in yearMonths()" :key="m"><option :value="m" :selected="m === expMonth" x-text="m"></option></template>
+          </select>
         </div>
         <div>
           <label for="exp-amount" class="font-bold block">المبلغ بالجنيه</label>
@@ -477,6 +477,11 @@
         if (this.teacher !== '*' && !data.teachers.some(t => t.name === this.teacher)) this.teacher = data.teachers.length ? data.teachers[0].name : '';
         const months = this.months();
         if (months.indexOf(this.month) === -1) this.month = months.length ? months[months.length - 1] : '';
+        if (!this.expMonth) {
+          const now = new Date();
+          const current = String(now.getFullYear()) === this.year ? now.getMonth() + 1 : 1;
+          this.expMonth = this.year + '-' + String(current).padStart(2, '0');
+        }
         this.rates = {};
         data.teachers.forEach(t => { this.rates[t.name] = String(t.rate); });
         const payMonths = this.payMonths();
@@ -531,6 +536,10 @@
         const min = Number(this.absentDays);
         return this.currentStudents().filter(s =>
           (!q || this.nameKey(s.name).indexOf(q) !== -1) && (!min || this.daysAway(s) > min));
+      },
+      // A select, not <input type="month">, which screen readers announce as bare spin buttons.
+      yearMonths() {
+        return Array.from({ length: 12 }, (_, i) => this.year + '-' + String(i + 1).padStart(2, '0'));
       },
       payMonths() {
         return this.data ? Array.from(new Set(this.data.pay.map(p => p.month))).sort() : [];
