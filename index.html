@@ -390,7 +390,7 @@
           this.token = saved.token;
           this.who = saved.who || '';
           this.status = 'جارٍ تحميل البيانات…';
-          this.call('data', {}, 'حُمّلت البيانات.');
+          this.call('data', {}, () => this.landed('حُمّلت البيانات.'));
         } else {
           this.$nextTick(() => this.focusEl('login-name'));
         }
@@ -405,7 +405,15 @@
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
           body: JSON.stringify({ action, token: this.token, test: this.test, year: this.year, args: args || {} }),
         })
-          .then(r => r.json())
+          .catch(() => { throw { network: true }; })
+          // Google answers with an HTML page for a wrong address, a deployment
+          // that needs authorizing, or a quota error: that is not the network.
+          .then(r => r.text().then(text => {
+            let reply = null;
+            try { reply = JSON.parse(text); } catch (e) { reply = null; }
+            if (!r.ok || !reply) throw { server: r.status };
+            return reply;
+          }))
           .then(reply => {
             this.busy = false;
             if (!reply.ok) return this.fail(reply.error, reply.auth);
@@ -413,9 +421,11 @@
             this.load(reply.data);
             this.status = typeof done === 'function' ? done(reply) : done;
           })
-          .catch(() => {
+          .catch(err => {
             this.busy = false;
-            this.fail('تعذّر الاتصال بالخادم؛ تحقق من الإنترنت ثم أعد المحاولة.');
+            if (err && err.network) this.fail('تعذّر الاتصال بالخادم؛ تحقق من الإنترنت ثم أعد المحاولة.');
+            else if (err && err.server !== undefined) this.fail('ردّ الخادم ردّاً غير متوقع (الحالة ' + err.server + ')؛ أخبر المطور.');
+            else this.fail('خطأ في الصفحة: ' + ((err && err.message) || err));
           });
       },
       fail(message, auth) {
@@ -439,8 +449,14 @@
             sessionStorage.setItem(SESSION_KEY, JSON.stringify({ token: reply.token, who: reply.name }));
           } catch (e) { /* private window: the session lasts until reload */ }
           this.status = 'جارٍ تحميل البيانات…';
-          this.call('data', {}, 'دخلتَ باسم ' + reply.name + '، وحُمّلت البيانات.');
+          this.call('data', {}, () => this.landed('دخلتَ باسم ' + reply.name + '، وحُمّلت البيانات.'));
         });
+      },
+      // The login form hides under the focused button, so focus goes to the first
+      // heading once the data has rendered; the status line still announces the result.
+      landed(message) {
+        this.$nextTick(() => setTimeout(() => this.focusEl('numbers-h'), 0));
+        return message;
       },
       logout() {
         this.forget();
