@@ -106,6 +106,7 @@
     <section id="reports" aria-labelledby="reports-h" class="mb-8">
       <h2 id="reports-h" tabindex="-1" class="text-xl font-bold mb-2">تقارير الحلقات</h2>
       <p class="mb-2">صفوف شيتات تقارير المعلمين كما هي. وما كُتب في «الحالة» أنه «مكرر» أو «لا يُحسب» لا يدخل في الإجمالي ولا في الساعات.</p>
+      <p class="mb-2">يُعدَّل من التقرير مدةُ الحصة وعددُ الطلاب، ويُحذف الصف من الشيت نفسه، ما لم يثبت الشهر بعد الخامس من الشهر التالي. والحذف لا يمحو حضور الطلاب من سجل الطلاب.</p>
       <div class="flex flex-wrap gap-4 mb-2 items-end">
         <div>
           <label for="rep-teacher" class="font-bold block">المعلم</label>
@@ -131,6 +132,7 @@
             <th scope="col" x-show="repTeacher === '*'">المعلم</th>
             <th scope="col">تاريخ التقرير</th><th scope="col">نوع الحلقة / الفترة</th><th scope="col">فئة الطلاب</th>
             <th scope="col">مدة الحصة</th><th scope="col">عدد الطلاب</th><th scope="col">ملاحظات الإدارة</th><th scope="col">الحالة</th>
+            <th scope="col">إجراء</th>
           </tr></thead>
           <tbody>
             <template x-for="r in reportRows()" :key="r.order">
@@ -138,23 +140,66 @@
                 <td x-show="repTeacher === '*'" x-text="r.teacher"></td>
                 <th scope="row" x-text="r.date"></th><td x-text="r.session"></td><td x-text="r.category"></td>
                 <td x-text="r.duration"></td><td x-text="r.students"></td><td x-text="r.notes"></td><td x-text="r.status"></td>
+                <td>
+                  <span x-show="!r.editable">شهر ثابت</span>
+                  <span x-show="r.editable && pendingReport !== r.order" class="flex gap-1">
+                    <button type="button" class="border border-gray-900 px-2" :disabled="busy"
+                            :aria-label="'عدّل تقرير ' + reportName(r)" @click="startEditReport(r)">عدّل</button>
+                    <button type="button" class="border border-gray-900 px-2" :disabled="busy"
+                            :aria-label="'احذف تقرير ' + reportName(r)" @click="askDeleteReport(r)">احذف</button>
+                  </span>
+                  <span x-show="r.editable && pendingReport === r.order" class="flex gap-1">
+                    <button type="button" class="border-2 border-red-800 px-2 font-bold" :id="'rep-confirm-' + r.order" :disabled="busy"
+                            :aria-label="'تأكيد حذف تقرير ' + reportName(r) + ' من الشيت؛ لا رجعة فيه'"
+                            @click="deleteReport(r)">تأكيد الحذف</button>
+                    <button type="button" class="border border-gray-900 px-2" :aria-label="'ألغِ حذف تقرير ' + reportName(r)"
+                            @click="cancelDeleteReport(r)">ألغِ</button>
+                  </span>
+                </td>
               </tr>
             </template>
             <tr>
               <td x-show="repTeacher === '*'"></td>
               <th scope="row">الإجمالي</th><td></td><td></td>
               <td x-text="reportTotals().duration"></td><td x-text="reportTotals().students"></td><td></td>
-              <td x-text="reportTotals().count + ' محسوباً'"></td>
+              <td x-text="reportTotals().count + ' محسوباً'"></td><td></td>
             </tr>
             <tr>
               <td x-show="repTeacher === '*'"></td>
               <th scope="row">المتوسط</th><td></td><td></td>
-              <td x-text="reportTotals().avgDuration"></td><td x-text="reportTotals().avgStudents"></td><td></td><td></td>
+              <td x-text="reportTotals().avgDuration"></td><td x-text="reportTotals().avgStudents"></td><td></td><td></td><td></td>
             </tr>
           </tbody>
         </table>
       </div>
       <p x-show="!reportRows().length">لا تقارير في هذا الشهر.</p>
+      <form x-show="editing" @submit.prevent="saveReport()" class="border border-gray-700 p-3 mt-3 flex flex-col gap-2 max-w-md">
+        <fieldset>
+          <legend id="rep-edit-h" class="font-bold mb-2" x-text="editing ? 'تعديل تقرير ' + reportName(editing.r) : ''"></legend>
+          <div class="flex flex-wrap gap-4">
+            <div>
+              <label for="rep-hours" class="block">ساعات الحصة</label>
+              <input id="rep-hours" type="number" min="0" max="5" step="1" inputmode="numeric" x-model="editHours"
+                     class="border border-gray-700 p-1 w-20" aria-describedby="rep-edit-hint">
+            </div>
+            <div>
+              <label for="rep-minutes" class="block">دقائق الحصة</label>
+              <input id="rep-minutes" type="number" min="0" max="59" step="1" inputmode="numeric" x-model="editMinutes"
+                     class="border border-gray-700 p-1 w-20" aria-describedby="rep-edit-hint">
+            </div>
+            <div>
+              <label for="rep-students" class="block">عدد الطلاب</label>
+              <input id="rep-students" type="number" min="0" step="1" inputmode="numeric" x-model="editStudents"
+                     class="border border-gray-700 p-1 w-20">
+            </div>
+          </div>
+          <p id="rep-edit-hint" class="mt-1">مدة الحصة من دقيقة إلى خمس ساعات.</p>
+        </fieldset>
+        <div class="flex gap-2">
+          <button type="submit" class="border-2 border-gray-900 px-3 py-1 font-bold" :disabled="busy">احفظ التعديل</button>
+          <button type="button" class="border border-gray-900 px-3 py-1" @click="cancelEditReport()">ألغِ</button>
+        </div>
+      </form>
     </section>
 
     <!-- 3. Students -->
@@ -478,6 +523,7 @@
       month: '', teacher: '', repTeacher: '*', repMonth: '', search: '', absentDays: '0', genders: {},
       details: {},
       aliasFrom: '', aliasMode: 'list', aliasToList: '', aliasToTyped: '', review: null, pendingDelete: -1,
+      editing: null, editHours: '', editMinutes: '', editStudents: '', pendingReport: -1,
       rates: {}, fixedAmounts: {}, payMonth: '', payPassword: '',
       expMonth: '', expAmount: '',
 
@@ -593,6 +639,8 @@
         const payMonths = this.payMonths();
         if (payMonths.indexOf(this.payMonth) === -1) this.payMonth = payMonths.length ? payMonths[payMonths.length - 1] : '';
         this.pendingDelete = -1;
+        this.editing = null;
+        this.pendingReport = -1;
       },
 
       reportMonths() {
@@ -618,6 +666,50 @@
           avgDuration: rows.length ? hm(Math.round(minutes / rows.length)) : '',
           avgStudents: rows.length ? Math.round(students / rows.length * 10) / 10 : '',
         };
+      },
+      reportName(r) {
+        return r.teacher + '، ' + r.date + '، ' + r.session;
+      },
+      reportRef(r) {
+        return { teacher: r.teacher, month: r.month, row: r.row, stamp: r.stamp };
+      },
+      startEditReport(r) {
+        this.pendingReport = -1;
+        this.editing = { r };
+        this.editHours = String(Math.floor(r.minutes / 60));
+        this.editMinutes = String(r.minutes % 60);
+        this.editStudents = String(r.attendance);
+        this.$nextTick(() => this.focusEl('rep-hours'));
+      },
+      cancelEditReport() {
+        this.editing = null;
+        this.status = 'أُلغي التعديل.';
+        this.$nextTick(() => this.focusEl('reports-h'));
+      },
+      saveReport() {
+        const r = this.editing.r;
+        const args = Object.assign(this.reportRef(r),
+          { hours: this.editHours, minutes: this.editMinutes, students: this.editStudents });
+        this.call('editReport', args, () => {
+          this.focusSoon('reports-h');
+          return 'عُدِّل تقرير ' + this.reportName(r) + '.';
+        });
+      },
+      askDeleteReport(r) {
+        this.editing = null;
+        this.pendingReport = r.order;
+        this.$nextTick(() => this.focusEl('rep-confirm-' + r.order));
+      },
+      cancelDeleteReport(r) {
+        this.pendingReport = -1;
+        this.status = 'لم يُحذف التقرير.';
+        this.$nextTick(() => this.focusEl('reports-h'));
+      },
+      deleteReport(r) {
+        this.call('deleteReport', this.reportRef(r), () => {
+          this.focusSoon('reports-h');
+          return 'حُذف تقرير ' + this.reportName(r) + ' من الشيت.';
+        });
       },
       refreshReports() {
         this.status = 'جارٍ قراءة الشيتات…';
