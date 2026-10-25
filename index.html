@@ -70,20 +70,7 @@
     <!-- 1. Numbers -->
     <section id="numbers" aria-labelledby="numbers-h" class="mb-8">
       <h2 id="numbers-h" tabindex="-1" class="text-xl font-bold mb-2">الأرقام</h2>
-      <div class="overflow-x-auto">
-        <table class="mb-4 text-sm">
-          <caption>الإجمالي منذ بداية السجل</caption>
-          <thead><tr><template x-for="h in data.totalsHeaders" :key="h"><th scope="col" x-text="h"></th></template></tr></thead>
-          <tbody>
-            <template x-for="(row, i) in data.totals" :key="i">
-              <tr><th scope="row" x-text="row[0]"></th><template x-for="(cell, j) in row.slice(1)" :key="j">
-                <td x-text="cell"></td>
-              </template></tr>
-            </template>
-          </tbody>
-        </table>
-      </div>
-
+      <!-- The year's totals are on the donors page (donors.html). -->
       <label for="month-select" class="font-bold">الشهر:</label>
       <select id="month-select" x-model="month" class="border border-gray-700 p-1 mb-2">
         <template x-for="m in months()" :key="m"><option :value="m" :selected="m === month" x-text="m"></option></template>
