@@ -33,6 +33,7 @@
       <li><a href="#numbers">الأرقام</a></li>
       <li><a href="#reports">تقارير الحلقات</a></li>
       <li><a href="#students">الطلاب</a></li>
+      <li><a href="#honors">التكريمات</a></li>
       <li><a href="#fix-name">تصحيح اسم</a></li>
       <li><a href="#rates">أسعار الساعة والمستحقات</a></li>
       <li><a href="#expenses">المصروفات</a></li>
@@ -233,7 +234,7 @@
           <thead><tr>
             <th scope="col">الاسم</th><th scope="col" x-show="teacher === '*'">المعلم</th><th scope="col">الجنس</th><th scope="col">الفئة</th>
             <th scope="col">أول ظهور</th><th scope="col">آخر ظهور</th><th scope="col">أيام الغياب</th><th scope="col">الحضور</th>
-            <th scope="col">آخر حفظ</th><th scope="col">الإعادة</th><th scope="col">الأوسمة</th>
+            <th scope="col">آخر حفظ</th><th scope="col">الإعادة</th><th scope="col">الأوسمة</th><th scope="col">التكريمات</th>
             <th scope="col">السن</th><th scope="col">سنة الميلاد والهاتف</th>
           </tr></thead>
           <tbody>
@@ -254,7 +255,7 @@
                 <td x-text="s.category"></td><td x-text="s.firstSeen"></td><td x-text="s.lastSeen"></td>
                 <td x-text="daysAway(s)"></td>
                 <td x-text="s.attendance"></td><td x-text="s.lastHifz"></td>
-                <td x-text="s.repeats"></td><td x-text="s.medals"></td>
+                <td x-text="s.repeats"></td><td x-text="s.medals"></td><td x-text="s.honors"></td>
                 <td x-text="s.age === '' ? '' : s.age + ' سنة'"></td>
                 <td>
                   <label :for="'by-' + i" class="sr-only" x-text="'سنة ميلاد ' + s.name"></label>
@@ -272,6 +273,82 @@
                      x-text="absentMessage(s) ? 'WhatsApp برسالة غياب' : 'WhatsApp'"></a>
                 </td>
               </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 3b. Honors given by the administration (S-60) -->
+    <section id="honors" aria-labelledby="honors-h" class="mb-8">
+      <h2 id="honors-h" tabindex="-1" class="text-xl font-bold mb-2">التكريمات</h2>
+      <p class="mb-2">تكريم الإدارة للطالب، غير وسام الحلقة الذي يكتبه المعلم في تقريره. ويُحسب كل تكريم في مصروف شهره بمبلغ التكريم المحفوظ في قسم الرواتب، ويظهر عدده في الملف العام بلا أسماء. ولا يُضاف تكريم في شهر ثابت ولا يُحذف.</p>
+      <form @submit.prevent="addHonor()" class="flex flex-wrap gap-4 items-end mb-4">
+        <div>
+          <label for="hon-teacher" class="font-bold block">المعلم</label>
+          <select id="hon-teacher" x-model="honTeacher" @change="honKey = ''" required class="border border-gray-700 p-1">
+            <template x-for="t in data.teachers" :key="t.name"><option :value="t.name" :selected="t.name === honTeacher" x-text="t.name"></option></template>
+          </select>
+        </div>
+        <div>
+          <label for="hon-student" class="font-bold block">الطالب</label>
+          <select id="hon-student" x-model="honKey" required class="border border-gray-700 p-1">
+            <option value="">-- اختر --</option>
+            <template x-for="s in honorStudents()" :key="s.key"><option :value="s.key" :selected="s.key === honKey" x-text="s.name"></option></template>
+          </select>
+        </div>
+        <div>
+          <label for="hon-date" class="font-bold block">تاريخ التكريم</label>
+          <input id="hon-date" type="text" inputmode="numeric" dir="ltr" x-model="honDate" required
+                 class="border border-gray-700 p-1 w-32" aria-describedby="hon-date-hint">
+          <p id="hon-date-hint">بصيغة سنة-شهر-يوم، مثل 2026-10-25</p>
+        </div>
+        <div>
+          <label for="hon-reason" class="font-bold block">السبب (اختياري)</label>
+          <input id="hon-reason" type="text" maxlength="100" x-model="honReason" class="border border-gray-700 p-1 w-64">
+        </div>
+        <button type="submit" class="border-2 border-gray-900 px-3 py-1 font-bold" :disabled="busy">سجّل التكريم</button>
+      </form>
+      <div class="mb-2">
+        <label for="hon-month" class="font-bold block">شهر التكريمات</label>
+        <select id="hon-month" x-model="honMonth" class="border border-gray-700 p-1">
+          <template x-for="m in honorMonths()" :key="m"><option :value="m" :selected="m === honMonth" x-text="m"></option></template>
+        </select>
+      </div>
+      <div class="overflow-x-auto" x-show="honorRows().length">
+        <table class="text-sm">
+          <caption x-text="'تكريمات ' + honMonth + '، الأحدث أولاً: ' + honorRows().length"></caption>
+          <thead><tr>
+            <th scope="col">التاريخ</th><th scope="col">الطالب</th><th scope="col">المعلم</th><th scope="col">السبب</th><th scope="col">إجراء</th>
+          </tr></thead>
+          <tbody>
+            <template x-for="h in honorRows()" :key="h.row">
+              <tr>
+                <td x-text="h.date"></td><th scope="row" x-text="h.name"></th><td x-text="h.teacher"></td><td x-text="h.reason"></td>
+                <td>
+                  <span x-show="!h.editable">شهر ثابت</span>
+                  <button type="button" class="border border-gray-900 px-2" x-show="h.editable && pendingHonor !== h.row" :disabled="busy"
+                          :aria-label="'احذف تكريم ' + h.name + ' في ' + h.date" @click="askDeleteHonor(h)">احذف</button>
+                  <span x-show="h.editable && pendingHonor === h.row" class="flex gap-1">
+                    <button type="button" class="border-2 border-red-800 px-2 font-bold" :id="'hon-confirm-' + h.row" :disabled="busy"
+                            :aria-label="'تأكيد حذف تكريم ' + h.name + ' في ' + h.date" @click="deleteHonor(h)">تأكيد الحذف</button>
+                    <button type="button" class="border border-gray-900 px-2" :aria-label="'ألغِ حذف تكريم ' + h.name"
+                            @click="cancelDeleteHonor()">ألغِ</button>
+                  </span>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+      <p x-show="!honorRows().length">لا تكريمات في هذا الشهر.</p>
+      <div class="overflow-x-auto mt-4" x-show="honorRanking().length">
+        <table class="text-sm">
+          <caption x-text="'أكثر الطلاب تكريماً في ' + year"></caption>
+          <thead><tr><th scope="col">الترتيب</th><th scope="col">الطالب</th><th scope="col">المعلم</th><th scope="col">عدد التكريمات</th></tr></thead>
+          <tbody>
+            <template x-for="(r, i) in honorRanking()" :key="r.teacher + '|' + r.key">
+              <tr><td x-text="i + 1"></td><th scope="row" x-text="r.name"></th><td x-text="r.teacher"></td><td x-text="r.count"></td></tr>
             </template>
           </tbody>
         </table>
@@ -409,6 +486,16 @@
         <button type="submit" class="border-2 border-gray-900 px-3 py-1 mt-2 font-bold disabled:opacity-50"
                 :disabled="busy || !changedFixed().length">احفظ المصروفات الثابتة</button>
       </form>
+      <form @submit.prevent="saveHonorAmount()" class="mt-4 flex flex-wrap gap-2 items-end">
+        <div>
+          <label for="honor-amount" class="font-bold block">مبلغ التكريم الواحد (جنيه)</label>
+          <input id="honor-amount" type="text" inputmode="decimal" x-model="honorAmountInput" placeholder="لا مبلغ"
+                 class="border border-gray-700 p-1 w-24" aria-describedby="honor-amount-hint">
+        </div>
+        <button type="submit" class="border-2 border-gray-900 px-3 py-1 font-bold disabled:opacity-50"
+                :disabled="busy || honorAmountInput.trim() === '' || honorAmountInput.trim() === String(data.honorAmount)">احفظ مبلغ التكريم</button>
+        <p id="honor-amount-hint" class="w-full">يُحسب من هذا الشهر، وتبقى الأشهر السابقة بمبلغها. وما دام لا مبلغ، بقي مصروف الشهر الذي فيه تكريم فارغاً.</p>
+      </form>
       <div class="mt-4">
         <label for="pay-month" class="font-bold block">شهر المستحقات</label>
         <select id="pay-month" x-model="payMonth" class="border border-gray-700 p-1">
@@ -524,6 +611,7 @@
       details: {},
       aliasFrom: '', aliasMode: 'list', aliasToList: '', aliasToTyped: '', review: null, pendingDelete: -1,
       editing: null, editHours: '', editMinutes: '', editStudents: '', pendingReport: -1,
+      honTeacher: '', honKey: '', honDate: '', honReason: '', honMonth: '', pendingHonor: -1, honorAmountInput: '',
       rates: {}, fixedAmounts: {}, payMonth: '', payPassword: '',
       expMonth: '', expAmount: '',
 
@@ -641,6 +729,11 @@
         this.pendingDelete = -1;
         this.editing = null;
         this.pendingReport = -1;
+        if (!data.teachers.some(t => t.name === this.honTeacher)) this.honTeacher = data.teachers.length ? data.teachers[0].name : '';
+        if (!this.honDate) this.honDate = data.today;
+        if (this.honorMonths().indexOf(this.honMonth) === -1) this.honMonth = data.today.slice(0, 7);
+        this.pendingHonor = -1;
+        this.honorAmountInput = String(data.honorAmount || '');
       },
 
       reportMonths() {
@@ -893,6 +986,60 @@
         if (!rows.length) return;
         this.call('saveFixed', this.pairArgs(rows), 'حُفظت المصروفات الثابتة: '
           + rows.map(r => r.name + ' ' + (r.value || 'لا مبلغ')).join('، ') + '.');
+      },
+      honorStudents() {
+        const t = this.data ? this.data.teachers.find(x => x.name === this.honTeacher) : null;
+        return t ? t.students.slice().sort((a, b) => a.name.localeCompare(b.name, 'ar')) : [];
+      },
+      honorMonths() {
+        if (!this.data) return [];
+        return Array.from(new Set(this.data.honors.map(h => h.month).concat([this.data.today.slice(0, 7)]))).sort();
+      },
+      honorRows() {
+        return this.data ? this.data.honors.filter(h => h.month === this.honMonth) : [];
+      },
+      // Over the year, most first; a tie goes by name.
+      honorRanking() {
+        if (!this.data) return [];
+        const by = {};
+        this.data.honors.forEach(h => {
+          const id = h.teacher + '|' + h.key;
+          (by[id] = by[id] || { teacher: h.teacher, key: h.key, name: h.name, count: 0 }).count++;
+        });
+        return Object.values(by).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'ar'));
+      },
+      addHonor() {
+        const s = this.honorStudents().find(x => x.key === this.honKey);
+        if (!s) {
+          this.error = 'اختر الطالب.';
+          this.$nextTick(() => this.focusEl('error'));
+          return;
+        }
+        const date = this.honDate.trim();
+        this.call('addHonor', { teacher: this.honTeacher, key: s.key, date, reason: this.honReason }, () => {
+          this.honReason = '';
+          this.honMonth = date.slice(0, 7);
+          return 'سُجّل تكريم ' + s.name + ' في ' + date + '.';
+        });
+      },
+      askDeleteHonor(h) {
+        this.pendingHonor = h.row;
+        this.$nextTick(() => this.focusEl('hon-confirm-' + h.row));
+      },
+      cancelDeleteHonor() {
+        this.pendingHonor = -1;
+        this.status = 'لم يُحذف التكريم.';
+        this.$nextTick(() => this.focusEl('honors-h'));
+      },
+      deleteHonor(h) {
+        this.call('deleteHonor', { row: h.row, date: h.date, teacher: h.teacher, key: h.key }, () => {
+          this.focusSoon('honors-h');
+          return 'حُذف تكريم ' + h.name + ' في ' + h.date + '.';
+        });
+      },
+      saveHonorAmount() {
+        const amount = this.honorAmountInput.trim();
+        this.call('saveHonorAmount', { amount }, 'حُفظ مبلغ التكريم: ' + amount + ' جنيهاً من هذا الشهر.');
       },
       saveExpense() {
         this.call('saveExpense', { month: this.expMonth, amount: this.expAmount },

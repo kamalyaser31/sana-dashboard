@@ -1,6 +1,6 @@
 # حالة المشروع — sana-dashboard
 
-**الإصدار:** `1.5.0`، منشور على GitHub (`kamalyaser31/sana-dashboard`، عام) وPages: https://kamalyaser31.github.io/sana-dashboard/، و`API_URL` يشير إلى النشر `AKfycbwxv2ue…` (النسخة 10).
+**الإصدار:** `1.6.0`، منشور على GitHub (`kamalyaser31/sana-dashboard`، عام) وPages: https://kamalyaser31.github.io/sana-dashboard/، و`API_URL` يشير إلى النشر `AKfycbwxv2ue…` (النسخة 10).
 **تاريخ التحديث:** `2026-10-24`
 
 ## البنية
@@ -12,6 +12,7 @@
 - معرّفات حقول الصفوف بترتيب الصف (`g-0`، `by-0`، `ph-0`)، لا بالمفتاح.
 - قسم «تقارير الحلقات» (`#reports`): `repTeacher` ('*' لكل المعلمين) و`repMonth`؛ `reportRows()` يحفظ ترتيب الشيت لمعلم واحد ويرتب «كل المعلمين» بالتاريخ ثم المعلم؛ و`reportTotals()` من الصفوف التي لا حالة لها؛ و`refreshReports()` يرسل `refreshReports`.
 - عمود «إجراء» (S-59): `startEditReport` يفتح نموذج المدة (ساعات ودقائق) وعدد الطلاب تحت الجدول وينقل التركيز إلى الساعات، و`saveReport` يرسل `editReport`؛ و`askDeleteReport` يُظهر «تأكيد الحذف» وينقل التركيز إليه، و`deleteReport` يرسل `deleteReport`. ويُرسل `reportRef(r)` (المعلم والشهر و`row` و`stamp`)، ويُكتب «شهر ثابت» مكان الزرين حين `editable` باطل.
+- قسم «التكريمات» (`#honors`، S-60): نموذج `honTeacher` و`honKey` و`honDate` (نص `yyyy-mm-dd`، مبدئياً `data.today`) و`honReason` يرسل `addHonor`؛ و`honMonth` يختار تكريمات الشهر من `data.honors`، ولكل صف «احذف» ثم «تأكيد الحذف» (`pendingHonor`) يرسل `deleteHonor`، و«شهر ثابت» حين `editable` باطل؛ و`honorRanking()` يرتب الطلاب بعدد تكريماتهم. وعمود «التكريمات» من `s.honors`. وفي الرواتب `honorAmountInput` يرسل `saveHonorAmount`.
 - جدولا الأسعار والمصروفات الثابتة استمارتان، لكل منهما زر حفظ واحد: `changedRates()` و`changedFixed()` يجمعان ما تغيّر، و`pairArgs()` يرسله طلباً واحداً (`saveRates`، `saveFixed`).
 - قسم الرواتب: `data.payOpen` يختار بين استمارة «افتح الرواتب» (`unlockPay`) والجداول وزر «أقفل الرواتب» (`lockPay`)؛ و`payData()` يقبل `pay` فارغاً؛ و`focusSoon` ينقل المؤشر بعد أن يُظهر x-show العنصر.
 
