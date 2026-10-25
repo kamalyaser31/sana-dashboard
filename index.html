@@ -268,7 +268,7 @@
       <div x-show="data.payOpen">
       <p class="mb-2">الرواتب مفتوحة حتى <span x-text="data.payUntil"></span>.
         <button type="button" class="border border-gray-900 px-2 ms-1" @click="lockPay()">أقفل الرواتب</button></p>
-      <div class="overflow-x-auto">
+      <form @submit.prevent="saveRates()" class="overflow-x-auto">
         <table class="text-sm">
           <caption>سعر الساعة لكل معلم</caption>
           <thead><tr><th scope="col">المعلم</th><th scope="col">سعر الساعة (جنيه)</th></tr></thead>
@@ -280,17 +280,15 @@
                   <label :for="'rate-' + i" class="sr-only" x-text="'سعر ساعة ' + t.name + ' بالجنيه'"></label>
                   <input :id="'rate-' + i" type="text" inputmode="decimal" x-model="rates[t.name]"
                          placeholder="لا سعر" class="border border-gray-700 p-1 w-24">
-                  <button type="button" class="border border-gray-900 px-2 ms-1 disabled:opacity-50"
-                          :disabled="busy || !rates[t.name] || rates[t.name].trim() === String(t.rate)"
-                          :aria-label="'احفظ سعر ساعة ' + t.name"
-                          @click="saveRate(t)">احفظ</button>
                 </td>
               </tr>
             </template>
           </tbody>
         </table>
-      </div>
-      <div class="overflow-x-auto mt-4">
+        <button type="submit" class="border-2 border-gray-900 px-3 py-1 mt-2 font-bold disabled:opacity-50"
+                :disabled="busy || !changedRates().length">احفظ الأسعار</button>
+      </form>
+      <form @submit.prevent="saveFixed()" class="overflow-x-auto mt-4">
         <table class="text-sm">
           <caption>المصروفات الثابتة كل شهر (جنيه)، تُضاف إلى مصروف كل شهر من أكتوبر 2026 حتى تُغيَّر</caption>
           <thead><tr><th scope="col">البند</th><th scope="col">المبلغ (جنيه)</th></tr></thead>
@@ -302,16 +300,14 @@
                   <label :for="'fixed-' + i" class="sr-only" x-text="'مبلغ ' + f.item + ' كل شهر بالجنيه'"></label>
                   <input :id="'fixed-' + i" type="text" inputmode="decimal" x-model="fixedAmounts[f.item]"
                          placeholder="لا مبلغ" class="border border-gray-700 p-1 w-24">
-                  <button type="button" class="border border-gray-900 px-2 ms-1 disabled:opacity-50"
-                          :disabled="busy || (fixedAmounts[f.item] || '').trim() === String(f.amount)"
-                          :aria-label="'احفظ مبلغ ' + f.item"
-                          @click="saveFixed(f)">احفظ</button>
                 </td>
               </tr>
             </template>
           </tbody>
         </table>
-      </div>
+        <button type="submit" class="border-2 border-gray-900 px-3 py-1 mt-2 font-bold disabled:opacity-50"
+                :disabled="busy || !changedFixed().length">احفظ المصروفات الثابتة</button>
+      </form>
       <div class="mt-4">
         <label for="pay-month" class="font-bold block">شهر المستحقات</label>
         <select id="pay-month" x-model="payMonth" class="border border-gray-700 p-1">
@@ -688,14 +684,36 @@
         this.call('deleteAlias', { teacher: a.teacher, from: a.from }, 'حُذف البديل «' + a.from + '».');
       },
 
-      saveRate(t) {
-        const rate = this.rates[t.name].trim();
-        this.call('saveRate', { teacher: t.name, rate }, 'حُفظ سعر ساعة ' + t.name + ': ' + rate + ' جنيه.');
+      // A blank rate is no change: a rate is never cleared from here.
+      changedRates() {
+        if (!this.data) return [];
+        return this.data.rateTeachers
+          .map(t => ({ name: t.name, value: (this.rates[t.name] || '').trim(), old: String(t.rate) }))
+          .filter(r => r.value !== '' && r.value !== r.old);
       },
-      saveFixed(f) {
-        const amount = (this.fixedAmounts[f.item] || '').trim();
-        this.call('saveFixed', { item: f.item, amount },
-          amount ? 'حُفظ مبلغ ' + f.item + ': ' + amount + ' جنيه كل شهر.' : 'أُلغي مبلغ ' + f.item + '.');
+      changedFixed() {
+        if (!this.data) return [];
+        return (this.data.fixed || [])
+          .map(f => ({ name: f.item, value: (this.fixedAmounts[f.item] || '').trim(), old: String(f.amount) }))
+          .filter(r => r.value !== r.old);
+      },
+      // One request for all the changes: n0, v0, n1, v1, ...
+      pairArgs(rows) {
+        const args = {};
+        rows.forEach((r, i) => { args['n' + i] = r.name; args['v' + i] = r.value; });
+        return args;
+      },
+      saveRates() {
+        const rows = this.changedRates();
+        if (!rows.length) return;
+        this.call('saveRates', this.pairArgs(rows),
+          'حُفظت الأسعار: ' + rows.map(r => r.name + ' ' + r.value).join('، ') + ' جنيهاً للساعة.');
+      },
+      saveFixed() {
+        const rows = this.changedFixed();
+        if (!rows.length) return;
+        this.call('saveFixed', this.pairArgs(rows), 'حُفظت المصروفات الثابتة: '
+          + rows.map(r => r.name + ' ' + (r.value || 'لا مبلغ')).join('، ') + '.');
       },
       saveExpense() {
         this.call('saveExpense', { month: this.expMonth, amount: this.expAmount },
