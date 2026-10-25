@@ -31,6 +31,7 @@
   <nav x-show="data" x-cloak aria-label="أقسام اللوحة" class="mb-4">
     <ul class="flex flex-wrap gap-4 underline">
       <li><a href="#numbers">الأرقام</a></li>
+      <li><a href="#reports">تقارير الحلقات</a></li>
       <li><a href="#students">الطلاب</a></li>
       <li><a href="#fix-name">تصحيح اسم</a></li>
       <li><a href="#rates">أسعار الساعة والمستحقات</a></li>
@@ -101,7 +102,62 @@
       </div>
     </section>
 
-    <!-- 2. Students -->
+    <!-- 2. Halaqa reports: the teachers' sheets as they are (S-55) -->
+    <section id="reports" aria-labelledby="reports-h" class="mb-8">
+      <h2 id="reports-h" tabindex="-1" class="text-xl font-bold mb-2">تقارير الحلقات</h2>
+      <p class="mb-2">صفوف شيتات تقارير المعلمين كما هي. وما كُتب في «الحالة» أنه «مكرر» أو «لا يُحسب» لا يدخل في الإجمالي ولا في الساعات.</p>
+      <div class="flex flex-wrap gap-4 mb-2 items-end">
+        <div>
+          <label for="rep-teacher" class="font-bold block">المعلم</label>
+          <select id="rep-teacher" x-model="repTeacher" class="border border-gray-700 p-1">
+            <option value="*" :selected="repTeacher === '*'">كل المعلمين</option>
+            <template x-for="t in data.teachers" :key="t.name"><option :value="t.name" :selected="t.name === repTeacher" x-text="t.name"></option></template>
+          </select>
+        </div>
+        <div>
+          <label for="rep-month" class="font-bold block">الشهر</label>
+          <select id="rep-month" x-model="repMonth" class="border border-gray-700 p-1">
+            <template x-for="m in reportMonths()" :key="m"><option :value="m" :selected="m === repMonth" x-text="m"></option></template>
+          </select>
+        </div>
+        <button type="button" class="border border-gray-900 px-2 py-1" :disabled="busy" @click="refreshReports()"
+                aria-describedby="rep-refresh-hint">حدّث التقارير</button>
+        <p id="rep-refresh-hint" class="w-full">تتجدد التقارير وحدها كل عشر دقائق؛ والزر يقرأ الشيتات الآن، في نحو عشرين ثانية.</p>
+      </div>
+      <div class="overflow-x-auto" x-show="reportRows().length">
+        <table class="text-sm">
+          <caption x-text="'تقارير ' + (repTeacher === '*' ? 'كل المعلمين' : repTeacher) + ' في ' + repMonth"></caption>
+          <thead><tr>
+            <th scope="col" x-show="repTeacher === '*'">المعلم</th>
+            <th scope="col">تاريخ التقرير</th><th scope="col">نوع الحلقة / الفترة</th><th scope="col">فئة الطلاب</th>
+            <th scope="col">مدة الحصة</th><th scope="col">عدد الطلاب</th><th scope="col">ملاحظات الإدارة</th><th scope="col">الحالة</th>
+          </tr></thead>
+          <tbody>
+            <template x-for="r in reportRows()" :key="r.order">
+              <tr>
+                <td x-show="repTeacher === '*'" x-text="r.teacher"></td>
+                <th scope="row" x-text="r.date"></th><td x-text="r.session"></td><td x-text="r.category"></td>
+                <td x-text="r.duration"></td><td x-text="r.students"></td><td x-text="r.notes"></td><td x-text="r.status"></td>
+              </tr>
+            </template>
+            <tr>
+              <td x-show="repTeacher === '*'"></td>
+              <th scope="row">الإجمالي</th><td></td><td></td>
+              <td x-text="reportTotals().duration"></td><td x-text="reportTotals().students"></td><td></td>
+              <td x-text="reportTotals().count + ' محسوباً'"></td>
+            </tr>
+            <tr>
+              <td x-show="repTeacher === '*'"></td>
+              <th scope="row">المتوسط</th><td></td><td></td>
+              <td x-text="reportTotals().avgDuration"></td><td x-text="reportTotals().avgStudents"></td><td></td><td></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p x-show="!reportRows().length">لا تقارير في هذا الشهر.</p>
+    </section>
+
+    <!-- 3. Students -->
     <section id="students" aria-labelledby="students-h" class="mb-8">
       <h2 id="students-h" tabindex="-1" class="text-xl font-bold mb-2">الطلاب</h2>
       <div class="flex flex-wrap gap-4 mb-2">
@@ -177,7 +233,7 @@
       </div>
     </section>
 
-    <!-- 3. Fix a name -->
+    <!-- 4. Fix a name -->
     <section id="fix-name" aria-labelledby="fix-h" class="mb-8">
       <h2 id="fix-h" tabindex="-1" class="text-xl font-bold mb-2">تصحيح اسم</h2>
       <p class="mb-2">اختر المعلم المحدد في قسم الطلاب، ثم الاسم كما ورد خطأً، ثم الاسم الصحيح. يُدمج الصفان في الحال، ولا يُنقض الدمج.</p>
@@ -248,7 +304,7 @@
       </div>
     </section>
 
-    <!-- 4. Hourly rates and pay -->
+    <!-- 5. Hourly rates and pay -->
     <section id="rates" aria-labelledby="rates-h" class="mb-8">
       <h2 id="rates-h" tabindex="-1" class="text-xl font-bold mb-2">أسعار الساعة والمستحقات</h2>
       <p class="mb-2">سعر الساعة بالجنيه، واحد لكل حلقات المعلم. والساعات من شيت تقارير كل معلم، بلا التقارير المكررة، من أول أكتوبر 2026. ويُحسب بالسعر الحالي كل شهر لم يثبت بعد في الملف العام.</p>
@@ -344,7 +400,7 @@
       </div>
     </section>
 
-    <!-- 5. Other expenses -->
+    <!-- 6. Other expenses -->
     <section id="expenses" aria-labelledby="exp-h" class="mb-8">
       <h2 id="exp-h" tabindex="-1" class="text-xl font-bold mb-2">المصروفات</h2>
       <p class="mb-2">المصروفات الأخرى بالجنيه، غير مستحقات المعلمين. ومصروف الشهر في الأرقام مجموعهما.</p>
@@ -376,7 +432,7 @@
       </div>
     </section>
 
-    <!-- 6. Edit log (S-44) -->
+    <!-- 7. Edit log (S-44) -->
     <section id="log" aria-labelledby="log-h" class="mb-8">
       <h2 id="log-h" tabindex="-1" class="text-xl font-bold mb-2">سجل التعديلات</h2>
       <div class="overflow-x-auto">
@@ -419,7 +475,7 @@
     return {
       data: null, status: '', error: '', busy: false, year: '', test: false,
       token: '', who: '', loginName: '', loginPassword: '',
-      month: '', teacher: '', search: '', absentDays: '0', genders: {},
+      month: '', teacher: '', repTeacher: '*', repMonth: '', search: '', absentDays: '0', genders: {},
       details: {},
       aliasFrom: '', aliasMode: 'list', aliasToList: '', aliasToTyped: '', review: null, pendingDelete: -1,
       rates: {}, fixedAmounts: {}, payMonth: '', payPassword: '',
@@ -520,6 +576,9 @@
           this.details[t.name + '|' + s.key] = { birthYear: String(s.birthYear || ''), phone: s.phone || '' };
         }));
         if (this.teacher !== '*' && !data.teachers.some(t => t.name === this.teacher)) this.teacher = data.teachers.length ? data.teachers[0].name : '';
+        if (this.repTeacher !== '*' && !data.teachers.some(t => t.name === this.repTeacher)) this.repTeacher = '*';
+        const repMonths = this.reportMonths();
+        if (repMonths.indexOf(this.repMonth) === -1) this.repMonth = repMonths.length ? repMonths[repMonths.length - 1] : '';
         const months = this.months();
         if (months.indexOf(this.month) === -1) this.month = months.length ? months[months.length - 1] : '';
         if (!this.expMonth) {
@@ -536,6 +595,34 @@
         this.pendingDelete = -1;
       },
 
+      reportMonths() {
+        return this.data ? Array.from(new Set(this.data.reports.map(r => r.month))).sort() : [];
+      },
+      // One teacher keeps the sheet's order; all teachers go by date, then teacher.
+      reportRows() {
+        if (!this.data) return [];
+        const rows = this.data.reports.filter(r => r.month === this.repMonth
+          && (this.repTeacher === '*' || r.teacher === this.repTeacher));
+        const cmp = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
+        if (this.repTeacher === '*') rows.sort((a, b) => cmp(a.day, b.day) || cmp(a.teacher, b.teacher) || a.order - b.order);
+        return rows;
+      },
+      // Over the counted rows only, so the totals match the numbers and the pay.
+      reportTotals() {
+        const rows = this.reportRows().filter(r => !r.status);
+        const minutes = rows.reduce((a, r) => a + r.minutes, 0);
+        const students = rows.reduce((a, r) => a + r.attendance, 0);
+        const hm = m => Math.floor(m / 60) + ':' + String(m % 60).padStart(2, '0');
+        return {
+          count: rows.length, duration: hm(minutes), students,
+          avgDuration: rows.length ? hm(Math.round(minutes / rows.length)) : '',
+          avgStudents: rows.length ? Math.round(students / rows.length * 10) / 10 : '',
+        };
+      },
+      refreshReports() {
+        this.status = 'جارٍ قراءة الشيتات…';
+        this.call('refreshReports', {}, 'حُدّثت التقارير من الشيتات.');
+      },
       months() {
         return this.data ? Array.from(new Set(this.data.monthly.map(r => r[0]))).sort() : [];
       },
