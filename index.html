@@ -726,14 +726,13 @@
       reportMonths() {
         return this.data ? Array.from(new Set(this.data.reports.map(r => r.month))).sort() : [];
       },
-      // One teacher keeps the sheet's order; all teachers go by date, then teacher.
+      // Newest first: by date, then the later row of the sheet (the later report), then teacher.
       reportRows() {
         if (!this.data) return [];
         const rows = this.data.reports.filter(r => r.month === this.repMonth
           && (this.repTeacher === '*' || r.teacher === this.repTeacher));
         const cmp = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
-        if (this.repTeacher === '*') rows.sort((a, b) => cmp(a.day, b.day) || cmp(a.teacher, b.teacher) || a.order - b.order);
-        return rows;
+        return rows.sort((a, b) => cmp(b.day, a.day) || b.order - a.order || cmp(a.teacher, b.teacher));
       },
       // Over the counted rows only, so the totals match the numbers and the pay.
       reportTotals() {
