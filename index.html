@@ -254,6 +254,20 @@
       <p class="mb-2">سعر الساعة بالجنيه، واحد لكل حلقات المعلم. ويُحسب بالسعر الحالي كل شهر لم يثبت بعد في الملف العام.</p>
       <p x-show="data.unpriced.length" class="font-bold mb-2"
          x-text="'لا سعر لـ: ' + data.unpriced.join('، ') + '. فمصروف الأشهر التي لهم فيها حلقات يبقى فارغاً في الملف العام حتى يُكتب سعرهم.'"></p>
+
+      <form x-show="!data.payOpen" @submit.prevent="unlockPay()" class="flex flex-wrap gap-3 items-end max-w-xl">
+        <div>
+          <label for="pay-password" class="font-bold block">كلمة مرور الرواتب</label>
+          <input id="pay-password" type="password" x-model="payPassword" required autocomplete="off"
+                 aria-describedby="pay-hint" class="border border-gray-700 p-1">
+        </div>
+        <button type="submit" class="border-2 border-gray-900 px-3 py-1 font-bold" :disabled="busy">افتح الرواتب</button>
+        <p id="pay-hint" class="w-full">الأسعار والمستحقات لا تظهر إلا بها، وتبقى ظاهرة نصف ساعة.</p>
+      </form>
+
+      <div x-show="data.payOpen">
+      <p class="mb-2">الرواتب مفتوحة حتى <span x-text="data.payUntil"></span>.
+        <button type="button" class="border border-gray-900 px-2 ms-1" @click="lockPay()">أقفل الرواتب</button></p>
       <div class="overflow-x-auto">
         <table class="text-sm">
           <caption>سعر الساعة لكل معلم</caption>
@@ -297,6 +311,19 @@
         </table>
       </div>
       <p x-show="!payRows().length" class="mt-2">لا حلقات بعد.</p>
+      <div class="overflow-x-auto mt-4">
+        <table class="text-sm">
+          <caption>سجل الأسعار، الأحدث أولاً</caption>
+          <thead><tr><th scope="col">الوقت</th><th scope="col">الاسم</th><th scope="col">التفاصيل</th></tr></thead>
+          <tbody>
+            <template x-for="(e, i) in data.rateLog" :key="i">
+              <tr><th scope="row" x-text="e.time"></th><td x-text="e.name"></td><td x-text="e.details"></td></tr>
+            </template>
+          </tbody>
+        </table>
+        <p x-show="!data.rateLog.length">لم يُغيَّر سعر بعد.</p>
+      </div>
+      </div>
     </section>
 
     <!-- 5. Other expenses -->
@@ -377,7 +404,7 @@
       month: '', teacher: '', search: '', absentDays: '0', genders: {},
       details: {},
       aliasFrom: '', aliasMode: 'list', aliasToList: '', aliasToTyped: '', review: null, pendingDelete: -1,
-      rates: {}, payMonth: '',
+      rates: {}, payMonth: '', payPassword: '',
       expMonth: '', expAmount: '',
 
       init() {
@@ -455,7 +482,7 @@
       // The login form hides under the focused button, so focus goes to the first
       // heading once the data has rendered; the status line still announces the result.
       landed(message) {
-        this.$nextTick(() => setTimeout(() => this.focusEl('numbers-h'), 0));
+        this.focusSoon('numbers-h');
         return message;
       },
       logout() {
@@ -541,17 +568,38 @@
       yearMonths() {
         return Array.from({ length: 12 }, (_, i) => this.year + '-' + String(i + 1).padStart(2, '0'));
       },
+      // Pay rows reach the page only after the pay password (S-47).
+      payData() {
+        return (this.data && this.data.pay) || [];
+      },
+      unlockPay() {
+        this.call('unlockPay', { password: this.payPassword }, reply => {
+          this.payPassword = '';
+          this.focusSoon('rates-h');
+          return 'فُتحت الرواتب حتى ' + reply.data.payUntil + '.';
+        });
+      },
+      lockPay() {
+        this.call('lockPay', {}, () => {
+          this.focusSoon('pay-password');
+          return 'أُقفلت الرواتب.';
+        });
+      },
       payMonths() {
-        return this.data ? Array.from(new Set(this.data.pay.map(p => p.month))).sort() : [];
+        return Array.from(new Set(this.payData().map(p => p.month))).sort();
       },
       payRows() {
-        return this.data ? this.data.pay.filter(p => p.month === this.payMonth) : [];
+        return this.payData().filter(p => p.month === this.payMonth);
       },
       payTotal() {
         const rows = this.payRows();
         const hours = Math.round(rows.reduce((a, p) => a + p.hours, 0) * 100) / 100;
         const unpriced = rows.some(p => p.pay === '');
         return { hours, pay: unpriced ? 'ناقص: بعضهم بلا سعر' : rows.reduce((a, p) => a + p.pay, 0) };
+      },
+      // For an element that x-show reveals only after this update has painted.
+      focusSoon(id) {
+        this.$nextTick(() => requestAnimationFrame(() => setTimeout(() => this.focusEl(id), 0)));
       },
       focusEl(id) {
         const el = document.getElementById(id);
