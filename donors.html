@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>أرقام أكاديمية سنا</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+  <style>
+    [x-cloak] { display: none !important; }
+    :focus-visible { outline: 3px solid #1d4ed8; outline-offset: 2px; }
+    table { border-collapse: collapse; }
+    th, td { border: 1px solid #9ca3af; padding: .35rem .5rem; text-align: start; }
+    caption { text-align: start; font-weight: 700; padding: .25rem 0; }
+    .bar { fill: #2a78d6; }
+    .bar:hover { fill: #1d5fae; }
+    .axis { stroke: #9ca3af; stroke-width: 1; }
+    .chart-text { fill: #52514e; font-size: 12px; }
+    .chart-value { fill: #0b0b0b; font-size: 12px; font-weight: 700; }
+  </style>
+</head>
+<body class="bg-white text-gray-900 text-base leading-relaxed">
+<div x-data="donors()" class="max-w-5xl mx-auto p-4">
+
+  <a href="#main" class="sr-only focus:not-sr-only underline">تخطَّ إلى المحتوى</a>
+
+  <header class="mb-4">
+    <h1 class="text-2xl font-bold">أرقام أكاديمية سنا</h1>
+    <div class="mt-2">
+      <label for="year" class="font-bold block">السنة</label>
+      <select id="year" x-model="year" @change="load()" class="border border-gray-700 p-1">
+        <template x-for="y in years()" :key="y"><option :value="y" :selected="y === year" x-text="y"></option></template>
+      </select>
+    </div>
+  </header>
+
+  <p id="status" role="status" aria-live="polite" class="mb-2" x-text="status"></p>
+  <p id="error" role="alert" tabindex="-1" class="mb-2 font-bold border-2 border-red-800 p-2" x-show="error" x-text="error"></p>
+
+  <main id="main" tabindex="-1" x-show="months.length" x-cloak>
+
+    <!-- 1. The latest frozen month, else the current one -->
+    <section aria-labelledby="month-h" class="mb-8">
+      <h2 id="month-h" class="text-xl font-bold mb-2" x-text="'شهر ' + monthName(card.month) + (card.current ? ' (جارٍ)' : '')"></h2>
+      <dl class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <template x-for="c in cardItems()" :key="c.label">
+          <div class="border border-gray-700 p-3">
+            <dt x-text="c.label"></dt>
+            <dd class="text-2xl font-bold" x-text="c.value"></dd>
+          </div>
+        </template>
+      </dl>
+    </section>
+
+    <!-- 2. Every month -->
+    <section aria-labelledby="months-h" class="mb-8">
+      <h2 id="months-h" class="text-xl font-bold mb-2">كل الأشهر</h2>
+      <div class="overflow-x-auto">
+        <table class="text-sm">
+          <caption x-text="'أرقام كل شهر في ' + year"></caption>
+          <thead><tr>
+            <th scope="col">الشهر</th>
+            <template x-for="c in MONTH_COLUMNS" :key="c.key"><th scope="col" x-text="c.label"></th></template>
+          </tr></thead>
+          <tbody>
+            <template x-for="m in months" :key="m.month">
+              <tr>
+                <th scope="row" x-text="monthName(m.month) + (isFrozen(m.month) ? '' : ' (جارٍ)')"></th>
+                <template x-for="c in MONTH_COLUMNS" :key="c.key"><td x-text="show(m, c)"></td></template>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 3. The year so far -->
+    <section aria-labelledby="year-h" class="mb-8" x-show="totals">
+      <h2 id="year-h" class="text-xl font-bold mb-2" x-text="'السنة ' + year + ' حتى الآن'"></h2>
+      <dl class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <template x-for="c in TOTAL_COLUMNS" :key="c.key">
+          <div class="border border-gray-700 p-3">
+            <dt x-text="c.label"></dt>
+            <dd class="text-2xl font-bold" x-text="totals ? show(totals, c) : ''"></dd>
+          </div>
+        </template>
+      </dl>
+    </section>
+
+    <!-- 4. Month by month -->
+    <section aria-labelledby="charts-h" class="mb-8">
+      <h2 id="charts-h" class="text-xl font-bold mb-2">شهراً بشهر</h2>
+      <div class="grid sm:grid-cols-2 gap-6">
+        <template x-for="c in CHART_COLUMNS" :key="c.key">
+          <figure>
+            <figcaption class="font-bold mb-1" x-text="c.label"></figcaption>
+            <div x-html="chart(c)" aria-hidden="true"></div>
+            <table class="sr-only">
+              <caption x-text="c.label + ' في كل شهر'"></caption>
+              <thead><tr><th scope="col">الشهر</th><th scope="col" x-text="c.label"></th></tr></thead>
+              <tbody>
+                <template x-for="m in months" :key="m.month">
+                  <tr><th scope="row" x-text="monthName(m.month)"></th><td x-text="show(m, c)"></td></tr>
+                </template>
+              </tbody>
+            </table>
+          </figure>
+        </template>
+      </div>
+    </section>
+
+    <p class="text-sm" x-show="updated" x-text="'آخر تحديث للأرقام: ' + updated"></p>
+  </main>
+</div>
+
+<script>
+  // Each year's public file, published to the web: its two tabs as CSV (S-61).
+  const YEARS = {
+    '2026': {
+      totals: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ7aGR14f7fqNl1_dXTGZAGqQaocaBgDGhkiCDFJcBowcK9NTmmOR-3tLx6oKWPnZLMoKBN4Sk7GpsO/pub?gid=0&single=true&output=csv',
+      monthly: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ7aGR14f7fqNl1_dXTGZAGqQaocaBgDGhkiCDFJcBowcK9NTmmOR-3tLx6oKWPnZLMoKBN4Sk7GpsO/pub?gid=1942124452&single=true&output=csv',
+    },
+  };
+  const ACADEMY = 'الأكاديمية';
+  const FREEZE_DAY = 5;
+  const MONTH_NAMES = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+  const MONTH_COLUMNS = [
+    { key: 'الطلاب الجدد', label: 'الطلاب الجدد' },
+    { key: 'من حضر في الشهر', label: 'من حضر من الطلاب' },
+    { key: 'نسبة الاستمرار', label: 'نسبة الاستمرار', percent: true },
+    { key: 'عدد الحلقات', label: 'الحلقات' },
+    { key: 'الساعات', label: 'ساعات التدريس' },
+    { key: 'الحضور الكلي', label: 'الحضور الكلي' },
+    { key: 'مصروف الشهر', label: 'مصروف الشهر', money: true },
+    { key: 'تكلفة ساعة التدريس', label: 'تكلفة ساعة التدريس', money: true },
+    { key: 'كفالة الطالب في الشهر', label: 'كفالة الطالب في الشهر', money: true },
+    { key: 'التكريمات', label: 'التكريمات' },
+  ];
+  const TOTAL_COLUMNS = [
+    { key: 'عدد الطلاب الكلي', label: 'الطلاب' },
+    { key: 'الطلاب النشطون', label: 'النشطون في آخر 30 يوماً' },
+    { key: 'الذكور', label: 'الذكور' },
+    { key: 'الإناث', label: 'الإناث' },
+    { key: 'عدد الحلقات', label: 'الحلقات' },
+    { key: 'ساعات التدريس', label: 'ساعات التدريس' },
+    { key: 'الحضور الكلي', label: 'الحضور الكلي' },
+    { key: 'حلقات الأطفال', label: 'حلقات الأطفال' },
+    { key: 'حلقات الكبار', label: 'حلقات الكبار' },
+    { key: 'التكريمات', label: 'التكريمات' },
+  ];
+  const CHART_COLUMNS = [
+    { key: 'من حضر في الشهر', label: 'من حضر من الطلاب' },
+    { key: 'الساعات', label: 'ساعات التدريس' },
+    { key: 'مصروف الشهر', label: 'مصروف الشهر (جنيه)', money: true },
+    { key: 'كفالة الطالب في الشهر', label: 'كفالة الطالب في الشهر (جنيه)', money: true },
+  ];
+
+  /** Rows of a CSV text; quoted cells may hold commas, quotes and line breaks. */
+  function parseCsv(text) {
+    const rows = [];
+    let row = [], cell = '', quoted = false;
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      if (quoted) {
+        if (ch === '"' && text[i + 1] === '"') { cell += '"'; i++; }
+        else if (ch === '"') quoted = false;
+        else cell += ch;
+      } else if (ch === '"') quoted = true;
+      else if (ch === ',') { row.push(cell); cell = ''; }
+      else if (ch === '\n' || ch === '\r') {
+        if (ch === '\r' && text[i + 1] === '\n') i++;
+        row.push(cell); rows.push(row); row = []; cell = '';
+      } else cell += ch;
+    }
+    if (cell !== '' || row.length) { row.push(cell); rows.push(row); }
+    return rows.map(r => r.map(c => c.trim()));
+  }
+
+  /** The rows below the header that starts with firstHeader, as objects by header name. */
+  function readTab(text, firstHeader) {
+    const rows = parseCsv(text.replace(/^﻿/, ''));
+    const at = rows.findIndex(r => r[0] === firstHeader);
+    if (at === -1) throw new Error('header');
+    const headers = rows[at];
+    return {
+      before: rows.slice(0, at),
+      rows: rows.slice(at + 1).map(r => Object.fromEntries(headers.map((h, i) => [h, r[i] === undefined ? '' : r[i]]))),
+    };
+  }
+
+  function donors() {
+    return {
+      MONTH_COLUMNS, TOTAL_COLUMNS, CHART_COLUMNS,
+      year: '', months: [], totals: null, updated: '', status: '', error: '',
+      card: { month: '', current: false },
+
+      init() {
+        const now = String(new Date().getFullYear());
+        this.year = YEARS[now] ? now : this.years()[0];
+        this.load();
+      },
+      years() {
+        return Object.keys(YEARS).sort().reverse();
+      },
+      load() {
+        const urls = YEARS[this.year];
+        this.error = '';
+        this.status = 'جارٍ تحميل الأرقام…';
+        const get = url => fetch(url).then(r => { if (!r.ok) throw new Error(r.status); return r.text(); });
+        Promise.all([get(urls.totals), get(urls.monthly)])
+          .then(([totalsText, monthlyText]) => {
+            const totals = readTab(totalsText, 'المعلم');
+            const stamp = totals.before.find(r => r[0] === 'آخر تحديث');
+            this.updated = stamp ? stamp[1] : '';
+            this.totals = totals.rows.find(r => r['المعلم'] === ACADEMY) || null;
+            // The academy's row of each month; the last one wins if a month repeats.
+            const byMonth = {};
+            readTab(monthlyText, 'الشهر').rows
+              .filter(r => r['المعلم'] === ACADEMY && /^\d{4}-\d{2}$/.test(r['الشهر']))
+              .forEach(r => { byMonth[r['الشهر']] = r; });
+            this.months = Object.keys(byMonth).sort().map(m => Object.assign({ month: m }, byMonth[m]));
+            const frozen = this.months.filter(m => this.isFrozen(m.month));
+            const pick = frozen.length ? frozen[frozen.length - 1] : this.months[this.months.length - 1];
+            this.card = { month: pick ? pick.month : '', current: pick ? !this.isFrozen(pick.month) : false };
+            this.status = this.months.length ? 'حُمّلت أرقام ' + this.year + '.' : 'لا أرقام لهذه السنة بعد.';
+          })
+          .catch(() => {
+            this.status = '';
+            this.months = [];
+            this.error = 'تعذّر تحميل الأرقام؛ أعد المحاولة بعد قليل.';
+            this.$nextTick(() => document.getElementById('error').focus());
+          });
+      },
+      // A month's numbers stop changing after the 5th of the next month.
+      isFrozen(month) {
+        const [y, m] = month.split('-').map(Number);
+        return new Date() >= new Date(y, m, FREEZE_DAY + 1);
+      },
+      monthName(month) {
+        if (!month) return '';
+        const [y, m] = month.split('-').map(Number);
+        return MONTH_NAMES[m - 1] + ' ' + y;
+      },
+      number(text) {
+        const n = Number(String(text).replace(/,/g, ''));
+        return text === '' || Number.isNaN(n) ? null : n;
+      },
+      // A blank cell is a number the academy does not count, such as the expense before October 2026.
+      show(row, c) {
+        const n = this.number(row[c.key]);
+        if (n === null) return row[c.key] === undefined ? '' : 'لا يُحسب';
+        if (c.percent) return Math.round(n * 100) + '٪';
+        const text = n.toLocaleString('en-US', { maximumFractionDigits: 2 });
+        return c.money ? text + ' جنيه' : text;
+      },
+      cardItems() {
+        const m = this.months.find(x => x.month === this.card.month);
+        return m ? MONTH_COLUMNS.map(c => ({ label: c.label, value: this.show(m, c) })) : [];
+      },
+      // One series, one axis: bars from a zero baseline, each month's value in its tooltip.
+      chart(c) {
+        const W = 420, H = 200, top = 22, bottom = 28, side = 8;
+        const points = this.months.map(m => ({ month: m.month, value: this.number(m[c.key]) }));
+        const max = Math.max(1, ...points.map(p => p.value || 0));
+        const slot = (W - 2 * side) / Math.max(1, points.length);
+        const bar = Math.min(36, slot * 0.6);
+        const base = H - bottom;
+        const shown = new Set();
+        const valued = points.filter(p => p.value !== null);
+        if (valued.length) {
+          shown.add(valued[valued.length - 1].month);
+          shown.add(valued.reduce((a, p) => (p.value > a.value ? p : a)).month);
+        }
+        const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+        const parts = points.map((p, i) => {
+          // Right to left, as the page reads: the first month on the right.
+          const x = W - side - (i + 1) * slot + (slot - bar) / 2;
+          const label = `<text class="chart-text" x="${x + bar / 2}" y="${H - 8}" text-anchor="middle">${esc(MONTH_NAMES[Number(p.month.slice(5)) - 1])}</text>`;
+          if (p.value === null) return label;
+          const h = Math.max(2, (p.value / max) * (base - top));
+          const y = base - h;
+          const r = Math.min(4, bar / 2, h);
+          // Rounded at the data end only, square on the baseline.
+          const path = `M${x},${base} V${y + r} Q${x},${y} ${x + r},${y} H${x + bar - r} Q${x + bar},${y} ${x + bar},${y + r} V${base} Z`;
+          const value = this.show({ v: String(p.value) }, Object.assign({}, c, { key: 'v' }));
+          const tip = `<title>${esc(this.monthName(p.month) + ': ' + value)}</title>`;
+          const text = shown.has(p.month)
+            ? `<text class="chart-value" x="${x + bar / 2}" y="${y - 6}" text-anchor="middle">${esc(p.value.toLocaleString('en-US', { maximumFractionDigits: 2 }))}</text>`
+            : '';
+          return `<path class="bar" d="${path}">${tip}</path>${text}${label}`;
+        }).join('');
+        return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="presentation" focusable="false" style="direction:ltr">`
+          + `<line class="axis" x1="${side}" x2="${W - side}" y1="${base}" y2="${base}"/>${parts}</svg>`;
+      },
+    };
+  }
+</script>
+</body>
+</html>
