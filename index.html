@@ -273,7 +273,7 @@
           <caption>سعر الساعة لكل معلم</caption>
           <thead><tr><th scope="col">المعلم</th><th scope="col">سعر الساعة (جنيه)</th></tr></thead>
           <tbody>
-            <template x-for="(t, i) in data.teachers" :key="t.name">
+            <template x-for="(t, i) in data.rateTeachers" :key="t.name">
               <tr>
                 <th scope="row" x-text="t.name"></th>
                 <td>
@@ -510,7 +510,7 @@
           this.expMonth = this.year + '-' + String(current).padStart(2, '0');
         }
         this.rates = {};
-        data.teachers.forEach(t => { this.rates[t.name] = String(t.rate); });
+        data.rateTeachers.forEach(t => { this.rates[t.name] = String(t.rate); });
         const payMonths = this.payMonths();
         if (payMonths.indexOf(this.payMonth) === -1) this.payMonth = payMonths.length ? payMonths[payMonths.length - 1] : '';
         this.pendingDelete = -1;
