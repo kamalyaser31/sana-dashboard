@@ -251,9 +251,9 @@
     <!-- 4. Hourly rates and pay -->
     <section id="rates" aria-labelledby="rates-h" class="mb-8">
       <h2 id="rates-h" tabindex="-1" class="text-xl font-bold mb-2">أسعار الساعة والمستحقات</h2>
-      <p class="mb-2">سعر الساعة بالجنيه، واحد لكل حلقات المعلم. ويُحسب بالسعر الحالي كل شهر لم يثبت بعد في الملف العام.</p>
+      <p class="mb-2">سعر الساعة بالجنيه، واحد لكل حلقات المعلم. والساعات من شيت تقارير كل معلم، بلا التقارير المكررة، من أول أكتوبر 2026. ويُحسب بالسعر الحالي كل شهر لم يثبت بعد في الملف العام.</p>
       <p x-show="data.unpriced.length" class="font-bold mb-2"
-         x-text="'لا سعر لـ: ' + data.unpriced.join('، ') + '. فمصروف الأشهر التي لهم فيها حلقات يبقى فارغاً في الملف العام حتى يُكتب سعرهم.'"></p>
+         x-text="'لا سعر لـ: ' + data.unpriced.join('، ') + '. فمصروف الأشهر التي لهم فيها ساعات يبقى فارغاً في الملف العام حتى يُكتب سعرهم.'"></p>
 
       <form x-show="!data.payOpen" @submit.prevent="unlockPay()" class="flex flex-wrap gap-3 items-end max-w-xl">
         <div>
@@ -290,6 +290,28 @@
           </tbody>
         </table>
       </div>
+      <div class="overflow-x-auto mt-4">
+        <table class="text-sm">
+          <caption>المصروفات الثابتة كل شهر (جنيه)، تُضاف إلى مصروف كل شهر من أكتوبر 2026 حتى تُغيَّر</caption>
+          <thead><tr><th scope="col">البند</th><th scope="col">المبلغ (جنيه)</th></tr></thead>
+          <tbody>
+            <template x-for="(f, i) in (data.fixed || [])" :key="f.item">
+              <tr>
+                <th scope="row" x-text="f.item"></th>
+                <td>
+                  <label :for="'fixed-' + i" class="sr-only" x-text="'مبلغ ' + f.item + ' كل شهر بالجنيه'"></label>
+                  <input :id="'fixed-' + i" type="text" inputmode="decimal" x-model="fixedAmounts[f.item]"
+                         placeholder="لا مبلغ" class="border border-gray-700 p-1 w-24">
+                  <button type="button" class="border border-gray-900 px-2 ms-1 disabled:opacity-50"
+                          :disabled="busy || (fixedAmounts[f.item] || '').trim() === String(f.amount)"
+                          :aria-label="'احفظ مبلغ ' + f.item"
+                          @click="saveFixed(f)">احفظ</button>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
       <div class="mt-4">
         <label for="pay-month" class="font-bold block">شهر المستحقات</label>
         <select id="pay-month" x-model="payMonth" class="border border-gray-700 p-1">
@@ -310,14 +332,14 @@
           </tbody>
         </table>
       </div>
-      <p x-show="!payRows().length" class="mt-2">لا حلقات بعد.</p>
+      <p x-show="!payRows().length" class="mt-2">لا ساعات في شيتات المعلمين لهذا الشهر بعد.</p>
       <div class="overflow-x-auto mt-4">
         <table class="text-sm">
-          <caption>سجل الأسعار، الأحدث أولاً</caption>
-          <thead><tr><th scope="col">الوقت</th><th scope="col">الاسم</th><th scope="col">التفاصيل</th></tr></thead>
+          <caption>سجل الأسعار والمصروفات الثابتة، الأحدث أولاً</caption>
+          <thead><tr><th scope="col">الوقت</th><th scope="col">الاسم</th><th scope="col">النوع</th><th scope="col">التفاصيل</th></tr></thead>
           <tbody>
             <template x-for="(e, i) in data.rateLog" :key="i">
-              <tr><th scope="row" x-text="e.time"></th><td x-text="e.name"></td><td x-text="e.details"></td></tr>
+              <tr><th scope="row" x-text="e.time"></th><td x-text="e.name"></td><td x-text="e.action"></td><td x-text="e.details"></td></tr>
             </template>
           </tbody>
         </table>
@@ -404,7 +426,7 @@
       month: '', teacher: '', search: '', absentDays: '0', genders: {},
       details: {},
       aliasFrom: '', aliasMode: 'list', aliasToList: '', aliasToTyped: '', review: null, pendingDelete: -1,
-      rates: {}, payMonth: '', payPassword: '',
+      rates: {}, fixedAmounts: {}, payMonth: '', payPassword: '',
       expMonth: '', expAmount: '',
 
       init() {
@@ -511,6 +533,8 @@
         }
         this.rates = {};
         data.rateTeachers.forEach(t => { this.rates[t.name] = String(t.rate); });
+        this.fixedAmounts = {};
+        (data.fixed || []).forEach(f => { this.fixedAmounts[f.item] = String(f.amount); });
         const payMonths = this.payMonths();
         if (payMonths.indexOf(this.payMonth) === -1) this.payMonth = payMonths.length ? payMonths[payMonths.length - 1] : '';
         this.pendingDelete = -1;
@@ -667,6 +691,11 @@
       saveRate(t) {
         const rate = this.rates[t.name].trim();
         this.call('saveRate', { teacher: t.name, rate }, 'حُفظ سعر ساعة ' + t.name + ': ' + rate + ' جنيه.');
+      },
+      saveFixed(f) {
+        const amount = (this.fixedAmounts[f.item] || '').trim();
+        this.call('saveFixed', { item: f.item, amount },
+          amount ? 'حُفظ مبلغ ' + f.item + ': ' + amount + ' جنيه كل شهر.' : 'أُلغي مبلغ ' + f.item + '.');
       },
       saveExpense() {
         this.call('saveExpense', { month: this.expMonth, amount: this.expAmount },
