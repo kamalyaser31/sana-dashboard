@@ -273,7 +273,7 @@
           <caption>سعر الساعة لكل معلم</caption>
           <thead><tr><th scope="col">المعلم</th><th scope="col">سعر الساعة (جنيه)</th></tr></thead>
           <tbody>
-            <template x-for="(t, i) in data.rateTeachers" :key="t.name">
+            <template x-for="(t, i) in data.teachers" :key="t.name">
               <tr>
                 <th scope="row" x-text="t.name"></th>
                 <td>
@@ -528,7 +528,7 @@
           this.expMonth = this.year + '-' + String(current).padStart(2, '0');
         }
         this.rates = {};
-        data.rateTeachers.forEach(t => { this.rates[t.name] = String(t.rate); });
+        data.teachers.forEach(t => { this.rates[t.name] = String(t.rate); });
         this.fixedAmounts = {};
         (data.fixed || []).forEach(f => { this.fixedAmounts[f.item] = String(f.amount); });
         const payMonths = this.payMonths();
@@ -687,7 +687,7 @@
       // A blank rate is no change: a rate is never cleared from here.
       changedRates() {
         if (!this.data) return [];
-        return this.data.rateTeachers
+        return this.data.teachers
           .map(t => ({ name: t.name, value: (this.rates[t.name] || '').trim(), old: String(t.rate) }))
           .filter(r => r.value !== '' && r.value !== r.old);
       },
