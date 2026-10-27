@@ -248,10 +248,6 @@
                   <select :id="'g-' + i" x-model="genders[k(s)]" class="border border-gray-700 p-1">
                     <option value="ذكر">ذكر</option><option value="أنثى">أنثى</option>
                   </select>
-                  <button type="button" class="border border-gray-900 px-2 ms-1 disabled:opacity-50"
-                          :disabled="busy || genders[k(s)] === s.gender"
-                          :aria-label="'احفظ جنس ' + s.name"
-                          @click="saveGender(s)">احفظ</button>
                 </td>
                 <td x-text="s.category"></td><td x-text="s.firstSeen"></td><td x-text="s.lastSeen"></td>
                 <td x-text="daysAway(s)"></td>
@@ -265,10 +261,6 @@
                   <label :for="'ph-' + i" class="sr-only">الهاتف</label>
                   <input :id="'ph-' + i" type="tel" dir="ltr" placeholder="+20…"
                          x-model="details[k(s)].phone" class="border border-gray-700 p-1 w-40">
-                  <button type="button" class="border border-gray-900 px-2 ms-1 disabled:opacity-50"
-                          :disabled="busy || !detailsChanged(s)"
-                          :aria-label="'احفظ سنة ميلاد وهاتف ' + s.name"
-                          @click="saveDetails(s)">احفظ</button>
                   <a x-show="s.phone" :href="waLink(s)" target="_blank" rel="noopener" class="underline ms-1"
                      :aria-label="'راسل ' + s.name + ' على WhatsApp' + (absentMessage(s) ? ' برسالة غياب جاهزة' : '') + ' (يفتح في نافذة جديدة)'"
                      x-text="absentMessage(s) ? 'WhatsApp برسالة غياب' : 'WhatsApp'"></a>
@@ -278,6 +270,12 @@
           </tbody>
         </table>
       </div>
+      <p class="mt-2">
+        <button type="button" class="border border-gray-900 px-3 py-1 font-bold disabled:opacity-50"
+                :disabled="busy || !changedStudents().length" aria-describedby="students-changed"
+                @click="saveStudents()">احفظ الطلاب</button>
+        <span id="students-changed" class="ms-2" x-text="changedStudents().length ? 'تغيّر ' + changedStudents().length + ' طالباً' : 'لا تغيير'"></span>
+      </p>
       </div>
     </section>
 
@@ -462,7 +460,8 @@
       <div x-show="data.payOpen">
       <p class="mb-2">الرواتب مفتوحة حتى <span x-text="data.payUntil"></span>.
         <button type="button" class="border border-gray-900 px-2 ms-1" @click="lockPay()">أقفل الرواتب</button></p>
-      <form @submit.prevent="saveRates()" class="overflow-x-auto">
+      <form @submit.prevent="savePay()">
+      <div class="overflow-x-auto">
         <table class="text-sm">
           <caption>سعر الساعة لكل معلم</caption>
           <thead><tr><th scope="col">المعلم</th><th scope="col">سعر الساعة (جنيه)</th></tr></thead>
@@ -479,10 +478,8 @@
             </template>
           </tbody>
         </table>
-        <button type="submit" class="border-2 border-gray-900 px-3 py-1 mt-2 font-bold disabled:opacity-50"
-                :disabled="busy || !changedRates().length">احفظ الأسعار</button>
-      </form>
-      <form @submit.prevent="saveFixed()" class="overflow-x-auto mt-4">
+      </div>
+      <div class="overflow-x-auto mt-4">
         <table class="text-sm">
           <caption>المصروفات الثابتة كل شهر (جنيه)، تُضاف إلى مصروف كل شهر من أكتوبر 2026 حتى تُغيَّر</caption>
           <thead><tr><th scope="col">البند</th><th scope="col">المبلغ (جنيه)</th></tr></thead>
@@ -499,18 +496,17 @@
             </template>
           </tbody>
         </table>
-        <button type="submit" class="border-2 border-gray-900 px-3 py-1 mt-2 font-bold disabled:opacity-50"
-                :disabled="busy || !changedFixed().length">احفظ المصروفات الثابتة</button>
-      </form>
-      <form @submit.prevent="saveHonorAmount()" class="mt-4 flex flex-wrap gap-2 items-end">
+      </div>
+      <div class="mt-4">
         <div>
           <label for="honor-amount" class="font-bold block">مبلغ التكريم الواحد (جنيه)</label>
           <input id="honor-amount" type="text" inputmode="decimal" x-model="honorAmountInput" placeholder="لا مبلغ"
                  class="border border-gray-700 p-1 w-24" aria-describedby="honor-amount-hint">
         </div>
-        <button type="submit" class="border-2 border-gray-900 px-3 py-1 font-bold disabled:opacity-50"
-                :disabled="busy || honorAmountInput.trim() === '' || honorAmountInput.trim() === String(data.honorAmount)">احفظ مبلغ التكريم</button>
-        <p id="honor-amount-hint" class="w-full">يُحسب من هذا الشهر، وتبقى الأشهر السابقة بمبلغها. وما دام لا مبلغ، بقي مصروف الشهر الذي فيه تكريم فارغاً.</p>
+        <p id="honor-amount-hint">يُحسب من هذا الشهر، وتبقى الأشهر السابقة بمبلغها. وما دام لا مبلغ، بقي مصروف الشهر الذي فيه تكريم فارغاً.</p>
+      </div>
+      <button type="submit" class="border-2 border-gray-900 px-3 py-1 mt-2 font-bold disabled:opacity-50"
+              :disabled="busy || !payChanged()">احفظ الرواتب</button>
       </form>
       <div class="mt-4">
         <label for="pay-month" class="font-bold block">شهر المستحقات</label>
@@ -623,6 +619,8 @@
     'نسبة الاستمرار', 'عدد الحلقات', 'الساعات', 'الحضور الكلي', 'متوسط الطلاب في الحلقة'];
   // A save may wait up to four minutes for a report being received (LOCK_TIMEOUT_MS).
   const SLOW_MS = 20000;
+  // API.MAX_PAIRS: one save carries fifty students at most (U-03).
+  const MAX_STUDENTS = 50;
 
   // In-page links move focus to the section heading (or <main>), so a screen
   // reader starts reading there.
@@ -954,19 +952,31 @@
       k(s) {
         return s.teacher + '|' + s.key;
       },
-      detailsChanged(s) {
-        const d = this.details[this.k(s)];
-        return !!d && (d.birthYear.trim() !== String(s.birthYear || '') || d.phone.trim() !== (s.phone || ''));
+      // Every student whose gender, birth year or phone differs from the sheet, in all teachers (U-03).
+      changedStudents() {
+        if (!this.data) return [];
+        const out = [];
+        this.data.teachers.forEach(t => t.students.forEach(s => {
+          const d = this.details[this.k(s)];
+          if (!d) return;
+          if (this.genders[this.k(s)] !== s.gender || d.birthYear.trim() !== String(s.birthYear || '')
+            || d.phone.trim() !== (s.phone || '')) out.push(s);
+        }));
+        return out;
       },
-      saveDetails(s) {
-        const d = this.details[this.k(s)];
-        this.call('setDetails', { teacher: s.teacher, key: s.key, birthYear: d.birthYear, phone: d.phone, label: s.name },
-          'حُفظت سنة ميلاد ' + s.name + ' وهاتفه.');
-      },
-
-      saveGender(s) {
-        this.call('setGender', { teacher: s.teacher, key: s.key, gender: this.genders[this.k(s)], label: s.name },
-          'حُفظ جنس ' + s.name + ': ' + this.genders[this.k(s)] + '.');
+      saveStudents() {
+        const list = this.changedStudents();
+        if (list.length > MAX_STUDENTS) {
+          return this.fail('تغيّر ' + list.length + ' طالباً، ويُحفظ ' + MAX_STUDENTS
+            + ' في المرة على الأكثر؛ أعد بعض الخانات كما كانت، واحفظ، ثم غيّرها.');
+        }
+        const args = {};
+        list.forEach((s, i) => {
+          const d = this.details[this.k(s)];
+          Object.assign(args, { ['t' + i]: s.teacher, ['k' + i]: s.key, ['g' + i]: this.genders[this.k(s)],
+            ['b' + i]: d.birthYear, ['p' + i]: d.phone });
+        });
+        this.call('saveStudents', args, 'حُفظت بيانات ' + list.length + ' طالباً.');
       },
 
       aliasTo() {
@@ -1021,23 +1031,29 @@
           .map(f => ({ name: f.item, value: (this.fixedAmounts[f.item] || '').trim(), old: String(f.amount) }))
           .filter(r => r.value !== r.old);
       },
-      // One request for all the changes: n0, v0, n1, v1, ...
-      pairArgs(rows) {
+      // A blank amount is no change: the amount is never cleared from here.
+      changedHonorAmount() {
+        const amount = this.honorAmountInput.trim();
+        return this.data && amount !== '' && amount !== String(this.data.honorAmount) ? amount : '';
+      },
+      payChanged() {
+        return this.changedRates().length > 0 || this.changedFixed().length > 0 || this.changedHonorAmount() !== '';
+      },
+      // The whole pay section in one request (U-02); the server saves all or none.
+      savePay() {
+        const rates = this.changedRates();
+        const fixed = this.changedFixed();
+        const amount = this.changedHonorAmount();
+        if (!rates.length && !fixed.length && !amount) return;
         const args = {};
-        rows.forEach((r, i) => { args['n' + i] = r.name; args['v' + i] = r.value; });
-        return args;
-      },
-      saveRates() {
-        const rows = this.changedRates();
-        if (!rows.length) return;
-        this.call('saveRates', this.pairArgs(rows),
-          'حُفظت الأسعار: ' + rows.map(r => r.name + ' ' + r.value).join('، ') + ' جنيهاً للساعة.');
-      },
-      saveFixed() {
-        const rows = this.changedFixed();
-        if (!rows.length) return;
-        this.call('saveFixed', this.pairArgs(rows), 'حُفظت المصروفات الثابتة: '
-          + rows.map(r => r.name + ' ' + (r.value || 'لا مبلغ')).join('، ') + '.');
+        rates.forEach((r, i) => { args['rn' + i] = r.name; args['rv' + i] = r.value; });
+        fixed.forEach((r, i) => { args['fn' + i] = r.name; args['fv' + i] = r.value; });
+        if (amount) args.honorAmount = amount;
+        const said = [];
+        if (rates.length) said.push('الأسعار: ' + rates.map(r => r.name + ' ' + r.value).join('، ') + ' جنيهاً للساعة');
+        if (fixed.length) said.push('المصروفات الثابتة: ' + fixed.map(r => r.name + ' ' + (r.value || 'لا مبلغ')).join('، '));
+        if (amount) said.push('مبلغ التكريم: ' + amount + ' جنيهاً من هذا الشهر');
+        this.call('savePay', args, 'حُفظت ' + said.join('؛ و') + '.');
       },
       honorStudents() {
         const t = this.data ? this.data.teachers.find(x => x.name === this.honTeacher) : null;
@@ -1088,10 +1104,6 @@
           this.focusSoon('honors-h');
           return 'حُذف تكريم ' + h.name + ' في ' + h.date + '.';
         });
-      },
-      saveHonorAmount() {
-        const amount = this.honorAmountInput.trim();
-        this.call('saveHonorAmount', { amount }, 'حُفظ مبلغ التكريم: ' + amount + ' جنيهاً من هذا الشهر.');
       },
       saveExpense() {
         this.call('saveExpense', { month: this.expMonth, amount: this.expAmount },
