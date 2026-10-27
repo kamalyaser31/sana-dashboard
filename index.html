@@ -30,14 +30,14 @@
 
   <nav x-show="data" x-cloak aria-label="أقسام اللوحة" class="mb-4">
     <ul class="flex flex-wrap gap-4 underline">
-      <li><a href="#numbers">الأرقام</a></li>
-      <li><a href="#reports">تقارير الحلقات</a></li>
-      <li><a href="#students">الطلاب</a></li>
-      <li><a href="#honors">التكريمات</a></li>
-      <li><a href="#fix-name">تصحيح اسم</a></li>
-      <li><a href="#rates">أسعار الساعة والمستحقات</a></li>
-      <li><a href="#expenses">المصروفات</a></li>
-      <li><a href="#log">سجل التعديلات</a></li>
+      <li><a href="#numbers" @click="openSection('numbers')">الأرقام</a></li>
+      <li><a href="#reports" @click="openSection('reports')">تقارير الحلقات</a></li>
+      <li><a href="#students" @click="openSection('students')">الطلاب</a></li>
+      <li><a href="#honors" @click="openSection('honors')">التكريمات</a></li>
+      <li><a href="#fix-name" @click="openSection('fix-name')">تصحيح اسم</a></li>
+      <li><a href="#rates" @click="openSection('rates')">أسعار الساعة والمستحقات</a></li>
+      <li><a href="#expenses" @click="openSection('expenses')">المصروفات</a></li>
+      <li><a href="#log" @click="openSection('log')">سجل التعديلات</a></li>
     </ul>
   </nav>
 
@@ -69,7 +69,11 @@
 
     <!-- 1. Numbers -->
     <section id="numbers" aria-labelledby="numbers-h" class="mb-8">
-      <h2 id="numbers-h" tabindex="-1" class="text-xl font-bold mb-2">الأرقام</h2>
+      <h2 id="numbers-h" tabindex="-1" class="text-xl font-bold mb-2">
+        <button type="button" class="text-start w-full" aria-controls="numbers-body"
+                :aria-expanded="String(isOpen('numbers'))" @click="toggleSection('numbers')"><span aria-hidden="true" x-text="isOpen('numbers') ? '− ' : '+ '"></span>الأرقام</button>
+      </h2>
+      <div id="numbers-body" x-show="isOpen('numbers')">
       <!-- The year's totals are on the donors page (donors.html). -->
       <label for="month-select" class="font-bold">الشهر:</label>
       <select id="month-select" x-model="month" class="border border-gray-700 p-1 mb-2">
@@ -78,21 +82,26 @@
       <div class="overflow-x-auto">
         <table class="text-sm">
           <caption x-text="'أرقام شهر ' + month"></caption>
-          <thead><tr><template x-for="h in data.monthlyHeaders.slice(2)" :key="h"><th scope="col" x-text="h"></th></template></tr></thead>
+          <thead><tr><th scope="col">المعلم</th><template x-for="h in NUMBER_COLUMNS" :key="h"><th scope="col" x-text="h"></th></template></tr></thead>
           <tbody>
             <template x-for="(row, i) in monthRows()" :key="i">
-              <tr><th scope="row" x-text="row[2]"></th><template x-for="(cell, j) in row.slice(3)" :key="j">
-                <td x-text="cell"></td>
+              <tr><th scope="row" x-text="row[2]"></th><template x-for="h in NUMBER_COLUMNS" :key="h">
+                <td x-text="row[data.monthlyHeaders.indexOf(h)]"></td>
               </template></tr>
             </template>
           </tbody>
         </table>
       </div>
+      </div>
     </section>
 
     <!-- 2. Halaqa reports: the teachers' sheets as they are (S-55) -->
     <section id="reports" aria-labelledby="reports-h" class="mb-8">
-      <h2 id="reports-h" tabindex="-1" class="text-xl font-bold mb-2">تقارير الحلقات</h2>
+      <h2 id="reports-h" tabindex="-1" class="text-xl font-bold mb-2">
+        <button type="button" class="text-start w-full" aria-controls="reports-body"
+                :aria-expanded="String(isOpen('reports'))" @click="toggleSection('reports')"><span aria-hidden="true" x-text="isOpen('reports') ? '− ' : '+ '"></span>تقارير الحلقات</button>
+      </h2>
+      <div id="reports-body" x-show="isOpen('reports')">
       <p class="mb-2">صفوف شيتات تقارير المعلمين كما هي. وما كُتب في «الحالة» أنه «مكرر» أو «لا يُحسب» لا يدخل في الإجمالي ولا في الساعات.</p>
       <p class="mb-2">يُعدَّل من التقرير مدةُ الحصة وعددُ الطلاب، ويُحذف الصف من الشيت نفسه، ما لم يثبت الشهر بعد الخامس من الشهر التالي. والحذف لا يمحو حضور الطلاب من سجل الطلاب.</p>
       <div class="flex flex-wrap gap-4 mb-2 items-end">
@@ -188,11 +197,16 @@
           <button type="button" class="border border-gray-900 px-3 py-1" @click="cancelEditReport()">ألغِ</button>
         </div>
       </form>
+      </div>
     </section>
 
     <!-- 3. Students -->
     <section id="students" aria-labelledby="students-h" class="mb-8">
-      <h2 id="students-h" tabindex="-1" class="text-xl font-bold mb-2">الطلاب</h2>
+      <h2 id="students-h" tabindex="-1" class="text-xl font-bold mb-2">
+        <button type="button" class="text-start w-full" aria-controls="students-body"
+                :aria-expanded="String(isOpen('students'))" @click="toggleSection('students')"><span aria-hidden="true" x-text="isOpen('students') ? '− ' : '+ '"></span>الطلاب</button>
+      </h2>
+      <div id="students-body" x-show="isOpen('students')">
       <div class="flex flex-wrap gap-4 mb-2">
         <div>
           <label for="teacher-select" class="font-bold block">المعلم</label>
@@ -230,7 +244,7 @@
                 <th scope="row"><span x-text="s.name"></span><span x-show="s.isNew"> (جديد)</span></th>
                 <td x-show="teacher === '*'" x-text="s.teacher"></td>
                 <td>
-                  <label :for="'g-' + i" class="sr-only" x-text="'جنس ' + s.name"></label>
+                  <label :for="'g-' + i" class="sr-only">الجنس</label>
                   <select :id="'g-' + i" x-model="genders[k(s)]" class="border border-gray-700 p-1">
                     <option value="ذكر">ذكر</option><option value="أنثى">أنثى</option>
                   </select>
@@ -245,10 +259,10 @@
                 <td x-text="s.repeats"></td><td x-text="s.medals"></td><td x-text="s.honors"></td>
                 <td x-text="s.age === '' ? '' : s.age + ' سنة'"></td>
                 <td>
-                  <label :for="'by-' + i" class="sr-only" x-text="'سنة ميلاد ' + s.name"></label>
+                  <label :for="'by-' + i" class="sr-only">سنة الميلاد</label>
                   <input :id="'by-' + i" type="text" inputmode="numeric" maxlength="4" placeholder="سنة الميلاد"
                          x-model="details[k(s)].birthYear" class="border border-gray-700 p-1 w-24">
-                  <label :for="'ph-' + i" class="sr-only" x-text="'هاتف ' + s.name"></label>
+                  <label :for="'ph-' + i" class="sr-only">الهاتف</label>
                   <input :id="'ph-' + i" type="tel" dir="ltr" placeholder="+20…"
                          x-model="details[k(s)].phone" class="border border-gray-700 p-1 w-40">
                   <button type="button" class="border border-gray-900 px-2 ms-1 disabled:opacity-50"
@@ -264,11 +278,16 @@
           </tbody>
         </table>
       </div>
+      </div>
     </section>
 
     <!-- 3b. Honors given by the administration (S-60) -->
     <section id="honors" aria-labelledby="honors-h" class="mb-8">
-      <h2 id="honors-h" tabindex="-1" class="text-xl font-bold mb-2">التكريمات</h2>
+      <h2 id="honors-h" tabindex="-1" class="text-xl font-bold mb-2">
+        <button type="button" class="text-start w-full" aria-controls="honors-body"
+                :aria-expanded="String(isOpen('honors'))" @click="toggleSection('honors')"><span aria-hidden="true" x-text="isOpen('honors') ? '− ' : '+ '"></span>التكريمات</button>
+      </h2>
+      <div id="honors-body" x-show="isOpen('honors')">
       <p class="mb-2">تكريم الإدارة للطالب، غير وسام الحلقة الذي يكتبه المعلم في تقريره. ويُحسب كل تكريم في مصروف شهره بمبلغ التكريم المحفوظ في قسم الرواتب، ويظهر عدده في الملف العام بلا أسماء. ولا يُضاف تكريم في شهر ثابت ولا يُحذف.</p>
       <form @submit.prevent="addHonor()" class="flex flex-wrap gap-4 items-end mb-4">
         <div>
@@ -340,11 +359,16 @@
           </tbody>
         </table>
       </div>
+      </div>
     </section>
 
     <!-- 4. Fix a name -->
     <section id="fix-name" aria-labelledby="fix-h" class="mb-8">
-      <h2 id="fix-h" tabindex="-1" class="text-xl font-bold mb-2">تصحيح اسم</h2>
+      <h2 id="fix-h" tabindex="-1" class="text-xl font-bold mb-2">
+        <button type="button" class="text-start w-full" aria-controls="fix-name-body"
+                :aria-expanded="String(isOpen('fix-name'))" @click="toggleSection('fix-name')"><span aria-hidden="true" x-text="isOpen('fix-name') ? '− ' : '+ '"></span>تصحيح اسم</button>
+      </h2>
+      <div id="fix-name-body" x-show="isOpen('fix-name')">
       <p class="mb-2">اختر المعلم المحدد في قسم الطلاب، ثم الاسم كما ورد خطأً، ثم الاسم الصحيح. يُدمج الصفان في الحال، ولا يُنقض الدمج.</p>
       <p x-show="teacher === '*'" class="font-bold mb-2">لتصحيح اسم اختر معلماً واحداً من قائمة «المعلم» في قسم الطلاب.</p>
       <form x-show="teacher !== '*'" @submit.prevent="reviewAlias()" class="flex flex-col gap-3 max-w-xl">
@@ -411,11 +435,16 @@
         </table>
         <p x-show="!data.aliases.length">لا بدائل بعد.</p>
       </div>
+      </div>
     </section>
 
     <!-- 5. Hourly rates and pay -->
     <section id="rates" aria-labelledby="rates-h" class="mb-8">
-      <h2 id="rates-h" tabindex="-1" class="text-xl font-bold mb-2">أسعار الساعة والمستحقات</h2>
+      <h2 id="rates-h" tabindex="-1" class="text-xl font-bold mb-2">
+        <button type="button" class="text-start w-full" aria-controls="rates-body"
+                :aria-expanded="String(isOpen('rates'))" @click="toggleSection('rates')"><span aria-hidden="true" x-text="isOpen('rates') ? '− ' : '+ '"></span>أسعار الساعة والمستحقات</button>
+      </h2>
+      <div id="rates-body" x-show="isOpen('rates')">
       <p class="mb-2">سعر الساعة بالجنيه، واحد لكل حلقات المعلم. والساعات من شيت تقارير كل معلم، بلا التقارير المكررة، من أول أكتوبر 2026. ويُحسب بالسعر الحالي كل شهر لم يثبت بعد في الملف العام.</p>
       <p x-show="data.unpriced.length" class="font-bold mb-2"
          x-text="'لا سعر لـ: ' + data.unpriced.join('، ') + '. فمصروف الأشهر التي لهم فيها ساعات يبقى فارغاً في الملف العام حتى يُكتب سعرهم.'"></p>
@@ -517,11 +546,16 @@
         <p x-show="!data.rateLog.length">لم يُغيَّر سعر بعد.</p>
       </div>
       </div>
+      </div>
     </section>
 
     <!-- 6. Other expenses -->
     <section id="expenses" aria-labelledby="exp-h" class="mb-8">
-      <h2 id="exp-h" tabindex="-1" class="text-xl font-bold mb-2">المصروفات</h2>
+      <h2 id="exp-h" tabindex="-1" class="text-xl font-bold mb-2">
+        <button type="button" class="text-start w-full" aria-controls="expenses-body"
+                :aria-expanded="String(isOpen('expenses'))" @click="toggleSection('expenses')"><span aria-hidden="true" x-text="isOpen('expenses') ? '− ' : '+ '"></span>المصروفات</button>
+      </h2>
+      <div id="expenses-body" x-show="isOpen('expenses')">
       <p class="mb-2">المصروفات الأخرى بالجنيه، غير مستحقات المعلمين. ومصروف الشهر في الأرقام مجموعهما.</p>
       <form @submit.prevent="saveExpense()" class="flex flex-wrap gap-4 items-end">
         <div>
@@ -549,11 +583,16 @@
         </table>
         <p x-show="!data.expenses.length">لا مصروفات بعد.</p>
       </div>
+      </div>
     </section>
 
     <!-- 7. Edit log (S-44) -->
     <section id="log" aria-labelledby="log-h" class="mb-8">
-      <h2 id="log-h" tabindex="-1" class="text-xl font-bold mb-2">سجل التعديلات</h2>
+      <h2 id="log-h" tabindex="-1" class="text-xl font-bold mb-2">
+        <button type="button" class="text-start w-full" aria-controls="log-body"
+                :aria-expanded="String(isOpen('log'))" @click="toggleSection('log')"><span aria-hidden="true" x-text="isOpen('log') ? '− ' : '+ '"></span>سجل التعديلات</button>
+      </h2>
+      <div id="log-body" x-show="isOpen('log')">
       <div class="overflow-x-auto">
         <table class="text-sm">
           <caption>آخر التعديلات، الأحدث أولاً، بالاسم الذي كُتب عند الدخول</caption>
@@ -566,6 +605,7 @@
         </table>
         <p x-show="!data.log.length">لا تعديلات بعد.</p>
       </div>
+      </div>
     </section>
   </div></template>
   </main>
@@ -576,6 +616,13 @@
   const API_URL = 'https://script.google.com/macros/s/AKfycbwxv2ueJUqhNRX-rBSBGLqzm9ReKH59pWftoYi-cfRF7CdU8MK60XJZeyuKI2qhqm7I/exec';
   const SESSION_KEY = 'sana_dashboard_session';
   const ABSENT_MESSAGE_DAYS = 14;
+  // Sections the admin opened, kept until the tab closes (U-06).
+  const OPEN_KEY = 'sana_dashboard_open';
+  // The monthly numbers the admin reads (U-05); the public file keeps every column.
+  const NUMBER_COLUMNS = ['الطلاب الجدد', 'من حضر في الشهر', 'المستمرون من الشهر السابق',
+    'نسبة الاستمرار', 'عدد الحلقات', 'الساعات', 'الحضور الكلي', 'متوسط الطلاب في الحلقة'];
+  // A save may wait up to four minutes for a report being received (LOCK_TIMEOUT_MS).
+  const SLOW_MS = 20000;
 
   // In-page links move focus to the section heading (or <main>), so a screen
   // reader starts reading there.
@@ -601,8 +648,11 @@
       honTeacher: '', honKey: '', honDate: '', honReason: '', honMonth: '', pendingHonor: -1, honorAmountInput: '',
       rates: {}, fixedAmounts: {}, payMonth: '', payPassword: '',
       expMonth: '', expAmount: '',
+      openSections: {}, NUMBER_COLUMNS,
 
       init() {
+        try { this.openSections = JSON.parse(sessionStorage.getItem(OPEN_KEY) || '{}') || {}; }
+        catch (e) { this.openSections = {}; }
         const params = new URLSearchParams(location.search);
         this.year = params.get('year') || String(new Date().getFullYear());
         this.test = params.get('test') === '1';
@@ -620,6 +670,9 @@
 
       call(action, args, done) {
         this.busy = true;
+        const slow = setTimeout(() => {
+          if (this.busy) this.status = 'ما زال الطلب جارياً؛ انتظر ولا تُعِد الضغط.';
+        }, SLOW_MS);
         this.error = '';
         fetch(API_URL, {
           method: 'POST',
@@ -638,6 +691,7 @@
           }))
           .then(reply => {
             this.busy = false;
+            clearTimeout(slow);
             if (!reply.ok) return this.fail(reply.error, reply.auth);
             if (action === 'login') return done(reply);
             this.load(reply.data);
@@ -645,6 +699,7 @@
           })
           .catch(err => {
             this.busy = false;
+            clearTimeout(slow);
             if (err && err.network) this.fail('تعذّر الاتصال بالخادم؛ تحقق من الإنترنت ثم أعد المحاولة.');
             else if (err && err.server !== undefined) this.fail('ردّ الخادم ردّاً غير متوقع (الحالة ' + err.server + ')؛ أخبر المطور.');
             else this.fail('خطأ في الصفحة: ' + ((err && err.message) || err));
@@ -796,6 +851,17 @@
       },
       months() {
         return this.data ? Array.from(new Set(this.data.monthly.map(r => r[0]))).sort() : [];
+      },
+      isOpen(id) {
+        return this.openSections[id] === true;
+      },
+      toggleSection(id) {
+        this.openSections[id] = !this.isOpen(id);
+        try { sessionStorage.setItem(OPEN_KEY, JSON.stringify(this.openSections)); }
+        catch (e) { /* private window: sections close on reload */ }
+      },
+      openSection(id) {
+        if (!this.isOpen(id)) this.toggleSection(id);
       },
       monthRows() {
         return this.data ? this.data.monthly.filter(r => r[0] === this.month) : [];
