@@ -28,19 +28,6 @@
     <p x-show="data" x-cloak>سنة <span x-text="data && data.year"></span>، وتاريخ اليوم <span x-text="data && data.today"></span>.</p>
   </header>
 
-  <nav x-show="data" x-cloak aria-label="أقسام اللوحة" class="mb-4">
-    <ul class="flex flex-wrap gap-4 underline">
-      <li><a href="#numbers" @click="openSection('numbers')">الأرقام</a></li>
-      <li><a href="#reports" @click="openSection('reports')">تقارير الحلقات</a></li>
-      <li><a href="#students" @click="openSection('students')">الطلاب</a></li>
-      <li><a href="#honors" @click="openSection('honors')">التكريمات</a></li>
-      <li><a href="#fix-name" @click="openSection('fix-name')">تصحيح اسم</a></li>
-      <li><a href="#rates" @click="openSection('rates')">أسعار الساعة والمستحقات</a></li>
-      <li><a href="#expenses" @click="openSection('expenses')">المصروفات</a></li>
-      <li><a href="#log" @click="openSection('log')">سجل التعديلات</a></li>
-    </ul>
-  </nav>
-
   <p id="status" role="status" aria-live="polite" class="mb-2 font-bold" x-text="status"></p>
   <!-- Always in the DOM (empty when there is no error), so focus can move to it at once. -->
   <p id="error" role="alert" tabindex="-1" class="mb-2 font-bold text-red-800"
@@ -102,8 +89,8 @@
                 :aria-expanded="String(isOpen('reports'))" @click="toggleSection('reports')"><span aria-hidden="true" x-text="isOpen('reports') ? '− ' : '+ '"></span>تقارير الحلقات</button>
       </h2>
       <div id="reports-body" x-show="isOpen('reports')">
-      <p class="mb-2">صفوف شيتات تقارير المعلمين كما هي. وما كُتب في «الحالة» أنه «مكرر» أو «لا يُحسب» لا يدخل في الإجمالي ولا في الساعات.</p>
-      <p class="mb-2">يُعدَّل من التقرير مدةُ الحصة وعددُ الطلاب، ويُحذف الصف من الشيت نفسه، ما لم يثبت الشهر بعد الخامس من الشهر التالي. والحذف لا يمحو حضور الطلاب من سجل الطلاب.</p>
+      <p class="mb-2">صفوف شيتات المعلمين كما هي؛ وما حالته «مكرر» أو «لا يُحسب» لا يدخل في الحساب.</p>
+      <p class="mb-2">تُعدَّل المدة وعدد الطلاب ويُحذف الصف حتى يثبت الشهر في خامس تاليه. والحذف لا يمس سجل الطلاب.</p>
       <div class="flex flex-wrap gap-4 mb-2 items-end">
         <div>
           <label for="rep-teacher" class="font-bold block">المعلم</label>
@@ -120,7 +107,7 @@
         </div>
         <button type="button" class="border border-gray-900 px-2 py-1" :disabled="busy" @click="refreshReports()"
                 aria-describedby="rep-refresh-hint">حدّث التقارير</button>
-        <p id="rep-refresh-hint" class="w-full">تتجدد التقارير وحدها كل عشر دقائق؛ والزر يقرأ الشيتات الآن، في نحو عشرين ثانية.</p>
+        <p id="rep-refresh-hint" class="w-full">تتجدد كل عشر دقائق، والزر يجددها الآن في نحو عشرين ثانية.</p>
       </div>
       <div class="overflow-x-auto" x-show="reportRows().length">
         <table class="text-sm">
@@ -135,7 +122,13 @@
             <template x-for="r in reportRows()" :key="r.order">
               <tr>
                 <td x-show="repTeacher === '*'" x-text="r.teacher"></td>
-                <th scope="row" x-text="r.date"></th><td x-text="r.session"></td><td x-text="r.category"></td>
+                <th scope="row" x-text="r.date"></th>
+                <td>
+                  <a x-show="r.link" :href="r.link" target="_blank" rel="noopener" class="underline"
+                     x-text="r.session" :aria-label="r.session + '، افتح التقرير (نافذة جديدة)'"></a>
+                  <span x-show="!r.link" x-text="r.session"></span>
+                </td>
+                <td x-text="r.category"></td>
                 <td x-text="r.duration"></td><td x-text="r.students"></td><td x-text="r.notes"></td><td x-text="r.status"></td>
                 <td>
                   <span x-show="!r.editable">شهر ثابت</span>
@@ -286,7 +279,7 @@
                 :aria-expanded="String(isOpen('honors'))" @click="toggleSection('honors')"><span aria-hidden="true" x-text="isOpen('honors') ? '− ' : '+ '"></span>التكريمات</button>
       </h2>
       <div id="honors-body" x-show="isOpen('honors')">
-      <p class="mb-2">تكريم الإدارة للطالب، غير وسام الحلقة الذي يكتبه المعلم في تقريره. ويُحسب كل تكريم في مصروف شهره بمبلغ التكريم المحفوظ في قسم الرواتب، ويظهر عدده في الملف العام بلا أسماء. ولا يُضاف تكريم في شهر ثابت ولا يُحذف.</p>
+      <p class="mb-2">تكريم الإدارة، غير وسام المعلم في تقريره؛ يُحسب في مصروف شهره، ويُنشر عدده بلا أسماء. ولا يُضاف ولا يُحذف في شهر ثابت.</p>
       <form @submit.prevent="addHonor()" class="flex flex-wrap gap-4 items-end mb-4">
         <div>
           <label for="hon-teacher" class="font-bold block">المعلم</label>
@@ -367,8 +360,8 @@
                 :aria-expanded="String(isOpen('fix-name'))" @click="toggleSection('fix-name')"><span aria-hidden="true" x-text="isOpen('fix-name') ? '− ' : '+ '"></span>تصحيح اسم</button>
       </h2>
       <div id="fix-name-body" x-show="isOpen('fix-name')">
-      <p class="mb-2">اختر المعلم المحدد في قسم الطلاب، ثم الاسم كما ورد خطأً، ثم الاسم الصحيح. يُدمج الصفان في الحال، ولا يُنقض الدمج.</p>
-      <p x-show="teacher === '*'" class="font-bold mb-2">لتصحيح اسم اختر معلماً واحداً من قائمة «المعلم» في قسم الطلاب.</p>
+      <p class="mb-2">اختر المعلم في قسم الطلاب، ثم الاسم الخطأ، ثم الصحيح. والدمج فوري لا يُنقض.</p>
+      <p x-show="teacher === '*'" class="font-bold mb-2">اختر معلماً واحداً في قسم الطلاب أولاً.</p>
       <form x-show="teacher !== '*'" @submit.prevent="reviewAlias()" class="flex flex-col gap-3 max-w-xl">
         <p>المعلم: <strong x-text="teacher"></strong></p>
         <div>
@@ -443,9 +436,9 @@
                 :aria-expanded="String(isOpen('rates'))" @click="toggleSection('rates')"><span aria-hidden="true" x-text="isOpen('rates') ? '− ' : '+ '"></span>أسعار الساعة والمستحقات</button>
       </h2>
       <div id="rates-body" x-show="isOpen('rates')">
-      <p class="mb-2">سعر الساعة بالجنيه، واحد لكل حلقات المعلم. والساعات من شيت تقارير كل معلم، بلا التقارير المكررة، من أول أكتوبر 2026. ويُحسب بالسعر الحالي كل شهر لم يثبت بعد في الملف العام.</p>
+      <p class="mb-2">سعر الساعة بالجنيه لكل معلم، والساعات من شيته بلا المكرر. وكل شهر لم يثبت يُحسب بالسعر الحالي.</p>
       <p x-show="data.unpriced.length" class="font-bold mb-2"
-         x-text="'لا سعر لـ: ' + data.unpriced.join('، ') + '. فمصروف الأشهر التي لهم فيها ساعات يبقى فارغاً في الملف العام حتى يُكتب سعرهم.'"></p>
+         x-text="'لا سعر لـ: ' + data.unpriced.join('، ') + '. فمصروف أشهرهم فارغ في الملف العام حتى يُكتب.'"></p>
 
       <form x-show="!data.payOpen" @submit.prevent="unlockPay()" class="flex flex-wrap gap-3 items-end max-w-xl">
         <div>
@@ -454,7 +447,7 @@
                  aria-describedby="pay-hint" class="border border-gray-700 p-1">
         </div>
         <button type="submit" class="border-2 border-gray-900 px-3 py-1 font-bold" :disabled="busy">افتح الرواتب</button>
-        <p id="pay-hint" class="w-full">الأسعار والمستحقات لا تظهر إلا بها، وتبقى ظاهرة نصف ساعة.</p>
+        <p id="pay-hint" class="w-full">تبقى الرواتب مفتوحة نصف ساعة.</p>
       </form>
 
       <div x-show="data.payOpen">
@@ -481,7 +474,7 @@
       </div>
       <div class="overflow-x-auto mt-4">
         <table class="text-sm">
-          <caption>المصروفات الثابتة كل شهر (جنيه)، تُضاف إلى مصروف كل شهر من أكتوبر 2026 حتى تُغيَّر</caption>
+          <caption>المصروفات الثابتة كل شهر (جنيه)</caption>
           <thead><tr><th scope="col">البند</th><th scope="col">المبلغ (جنيه)</th></tr></thead>
           <tbody>
             <template x-for="(f, i) in (data.fixed || [])" :key="f.item">
@@ -503,7 +496,7 @@
           <input id="honor-amount" type="text" inputmode="decimal" x-model="honorAmountInput" placeholder="لا مبلغ"
                  class="border border-gray-700 p-1 w-24" aria-describedby="honor-amount-hint">
         </div>
-        <p id="honor-amount-hint">يُحسب من هذا الشهر، وتبقى الأشهر السابقة بمبلغها. وما دام لا مبلغ، بقي مصروف الشهر الذي فيه تكريم فارغاً.</p>
+        <p id="honor-amount-hint">يُحسب من هذا الشهر، ولا يمس ما قبله. وبلا مبلغ يبقى مصروف شهر التكريم فارغاً.</p>
       </div>
       <button type="submit" class="border-2 border-gray-900 px-3 py-1 mt-2 font-bold disabled:opacity-50"
               :disabled="busy || !payChanged()">احفظ الرواتب</button>
@@ -552,7 +545,7 @@
                 :aria-expanded="String(isOpen('expenses'))" @click="toggleSection('expenses')"><span aria-hidden="true" x-text="isOpen('expenses') ? '− ' : '+ '"></span>المصروفات</button>
       </h2>
       <div id="expenses-body" x-show="isOpen('expenses')">
-      <p class="mb-2">المصروفات الأخرى بالجنيه، غير مستحقات المعلمين. ومصروف الشهر في الأرقام مجموعهما.</p>
+      <p class="mb-2">المصروفات الأخرى بالجنيه، غير الرواتب.</p>
       <form @submit.prevent="saveExpense()" class="flex flex-wrap gap-4 items-end">
         <div>
           <label for="exp-month" class="font-bold block">الشهر</label>
@@ -566,7 +559,7 @@
         </div>
         <button type="submit" class="border-2 border-gray-900 px-3 py-1 font-bold" :disabled="busy">احفظ المصروف</button>
       </form>
-      <p class="mt-1">إن كُتب الشهر من قبل عُدّل مصروفه ولم يتكرر.</p>
+      <p class="mt-1">الشهر المكتوب من قبل يُعدَّل ولا يتكرر.</p>
       <div class="overflow-x-auto mt-3">
         <table class="text-sm">
           <caption>المصروفات الأخرى في السنة بالجنيه</caption>
@@ -591,7 +584,7 @@
       <div id="log-body" x-show="isOpen('log')">
       <div class="overflow-x-auto">
         <table class="text-sm">
-          <caption>آخر التعديلات، الأحدث أولاً، بالاسم الذي كُتب عند الدخول</caption>
+          <caption>آخر التعديلات، الأحدث أولاً</caption>
           <thead><tr><th scope="col">الوقت</th><th scope="col">الاسم</th><th scope="col">الفعل</th><th scope="col">التفاصيل</th></tr></thead>
           <tbody>
             <template x-for="(e, i) in data.log" :key="i">
@@ -857,9 +850,6 @@
         this.openSections[id] = !this.isOpen(id);
         try { sessionStorage.setItem(OPEN_KEY, JSON.stringify(this.openSections)); }
         catch (e) { /* private window: sections close on reload */ }
-      },
-      openSection(id) {
-        if (!this.isOpen(id)) this.toggleSection(id);
       },
       monthRows() {
         return this.data ? this.data.monthly.filter(r => r[0] === this.month) : [];

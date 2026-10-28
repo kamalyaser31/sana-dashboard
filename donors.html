@@ -27,6 +27,7 @@
 
   <header class="mb-4">
     <h1 class="text-2xl font-bold">أرقام أكاديمية سنا</h1>
+    <p class="mt-1">تُحسب هذه الأرقام آلياً من تقارير معلمي الأكاديمية، وتثبت أرقام كل شهر بعد الخامس من الشهر الذي يليه فلا تتغير.</p>
     <div class="mt-2">
       <label for="year" class="font-bold block">السنة</label>
       <select id="year" x-model="year" @change="load()" class="border border-gray-700 p-1">
@@ -73,6 +74,16 @@
           </tbody>
         </table>
       </div>
+    </section>
+
+    <!-- What the numbers mean -->
+    <section aria-labelledby="terms-h" class="mb-8">
+      <h2 id="terms-h" class="text-xl font-bold mb-2">معاني الأرقام</h2>
+      <dl class="space-y-2">
+        <template x-for="t in TERMS" :key="t.term">
+          <div><dt class="font-bold inline" x-text="t.term + ': '"></dt><dd class="inline" x-text="t.meaning"></dd></div>
+        </template>
+      </dl>
     </section>
 
     <!-- 3. The year so far -->
@@ -137,17 +148,21 @@
     { key: 'كفالة الطالب في الشهر', label: 'كفالة الطالب في الشهر', money: true },
     { key: 'التكريمات', label: 'التكريمات' },
   ];
+  // The cards show what a donor asks first; the table keeps the rest.
+  const CARD_KEYS = ['من حضر في الشهر', 'الساعات', 'كفالة الطالب في الشهر'];
   const TOTAL_COLUMNS = [
     { key: 'عدد الطلاب الكلي', label: 'الطلاب' },
-    { key: 'الطلاب النشطون', label: 'النشطون في آخر 30 يوماً' },
-    { key: 'الذكور', label: 'الذكور' },
-    { key: 'الإناث', label: 'الإناث' },
-    { key: 'عدد الحلقات', label: 'الحلقات' },
     { key: 'ساعات التدريس', label: 'ساعات التدريس' },
-    { key: 'الحضور الكلي', label: 'الحضور الكلي' },
-    { key: 'حلقات الأطفال', label: 'حلقات الأطفال' },
-    { key: 'حلقات الكبار', label: 'حلقات الكبار' },
-    { key: 'التكريمات', label: 'التكريمات' },
+    { key: 'عدد الحلقات', label: 'الحلقات' },
+  ];
+  const TERMS = [
+    { term: 'من حضر من الطلاب', meaning: 'كل طالب حضر حلقة واحدة على الأقل في الشهر.' },
+    { term: 'نسبة الاستمرار', meaning: 'من حضر في الشهر السابق ثم حضر في هذا الشهر أيضاً.' },
+    { term: 'الحضور الكلي', meaning: 'مجموع الحضور في كل الحلقات؛ فمن حضر عشر حلقات عُدّ عشراً.' },
+    { term: 'مصروف الشهر', meaning: 'أجور المعلمين، والإدارة، والتكريمات، وسائر المصروفات.' },
+    { term: 'تكلفة ساعة التدريس', meaning: 'مصروف الشهر مقسوماً على ساعات التدريس.' },
+    { term: 'كفالة الطالب في الشهر', meaning: 'مصروف الشهر مقسوماً على من حضر من الطلاب.' },
+    { term: 'لا يُحسب', meaning: 'رقم لم يكتمل حسابه لذلك الشهر، كالمصروف قبل أكتوبر 2026.' },
   ];
   const CHART_COLUMNS = [
     { key: 'من حضر في الشهر', label: 'من حضر من الطلاب' },
@@ -191,7 +206,7 @@
 
   function donors() {
     return {
-      MONTH_COLUMNS, TOTAL_COLUMNS, CHART_COLUMNS,
+      MONTH_COLUMNS, TOTAL_COLUMNS, CHART_COLUMNS, TERMS,
       year: '', months: [], totals: null, updated: '', status: '', error: '',
       card: { month: '', current: false },
 
@@ -256,7 +271,8 @@
       },
       cardItems() {
         const m = this.months.find(x => x.month === this.card.month);
-        return m ? MONTH_COLUMNS.map(c => ({ label: c.label, value: this.show(m, c) })) : [];
+        return m ? MONTH_COLUMNS.filter(c => CARD_KEYS.includes(c.key))
+          .map(c => ({ label: c.label, value: this.show(m, c) })) : [];
       },
       // One series, one axis: bars from a zero baseline, each month's value in its tooltip.
       chart(c) {
