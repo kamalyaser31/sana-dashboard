@@ -1,6 +1,6 @@
 # حالة المشروع — sana-dashboard
 
-**الإصدار:** `1.8.1`، منشور على GitHub (`kamalyaser31/sana-dashboard`، عام) وPages: https://kamalyaser31.github.io/sana-dashboard/، و`API_URL` يشير إلى النشر `AKfycbwxv2ue…` (النسخة 33).
+**الإصدار:** `1.8.1`، منشور على GitHub (`kamalyaser31/sana-dashboard`، عام) وPages: https://kamalyaser31.github.io/sana-dashboard/، و`API_URL` يشير إلى النشر `AKfycbwxv2ue…` (النسخة 34).
 **تاريخ التحديث:** `2026-10-28`
 
 ## البنية
