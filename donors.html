@@ -7,131 +7,140 @@
   <title>أرقام أكاديمية سنا</title>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Readex+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     [x-cloak] { display: none !important; }
-    :focus-visible { outline: 3px solid #1d4ed8; outline-offset: 2px; }
+    body { font-family: 'Readex Pro', system-ui, sans-serif; }
+    .font-amiri { font-family: 'Amiri', serif; }
+    :focus-visible { outline: 3px solid #006655; outline-offset: 3px; }
     table { border-collapse: collapse; }
-    th, td { border: 1px solid #9ca3af; padding: .35rem .5rem; text-align: start; }
-    caption { text-align: start; font-weight: 700; padding: .25rem 0; }
-    .bar { fill: #2a78d6; }
-    .bar:hover { fill: #1d5fae; }
-    .axis { stroke: #9ca3af; stroke-width: 1; }
-    .chart-text { fill: #52514e; font-size: 12px; }
-    .chart-value { fill: #0b0b0b; font-size: 12px; font-weight: 700; }
+    th, td { border-bottom: 1px solid #d1dedb; padding: .6rem .5rem; text-align: start; }
+    thead th { border-bottom: 2px solid #006655; }
+    caption { text-align: start; color: #556b73; padding-bottom: .5rem; }
+    .bar { fill: #4f8f81; }
+    .bar-last { fill: #006655; }
+    .bar-none { fill: #d1dedb; }
+    .axis { stroke: #7a8f89; stroke-width: 1; }
+    .chart-text { fill: #556b73; font-size: 12px; }
+    .chart-value { fill: #1a2e35; font-size: 12px; font-weight: 700; }
   </style>
 </head>
-<body class="bg-white text-gray-900 text-base leading-relaxed">
-<div x-data="donors()" class="max-w-5xl mx-auto p-4">
+<body class="bg-white text-[#1a2e35] text-[17px] leading-relaxed">
+<div x-data="donors()">
 
   <a href="#main" class="sr-only focus:not-sr-only underline">تخطَّ إلى المحتوى</a>
 
-  <header class="mb-4">
-    <h1 class="text-2xl font-bold">أرقام أكاديمية سنا</h1>
-    <p class="mt-1">تُحسب هذه الأرقام آلياً من تقارير معلمي الأكاديمية، وتثبت أرقام كل شهر بعد الخامس من الشهر الذي يليه فلا تتغير.</p>
-    <div class="mt-2">
-      <label for="year" class="font-bold block">السنة</label>
-      <select id="year" x-model="year" @change="load()" class="border border-gray-700 p-1">
-        <template x-for="y in years()" :key="y"><option :value="y" :selected="y === year" x-text="y"></option></template>
-      </select>
+  <header class="border-b border-[#d1dedb]">
+    <div class="max-w-5xl mx-auto px-6 py-5 flex flex-wrap gap-4 items-center justify-between">
+      <div class="flex gap-3 items-center">
+        <svg aria-hidden="true" width="36" height="36" viewBox="0 0 36 36" fill="none" stroke="#006655" stroke-width="2"><path d="M18 8c-4-3-9-3-12-1v20c3-2 8-2 12 1 4-3 9-3 12-1V7c-3-2-8-2-12 1z"/><path d="M18 8v20"/></svg>
+        <h1 class="text-lg font-semibold">أرقام أكاديمية سنا لتعليم القرآن الكريم</h1>
+      </div>
+      <div class="flex gap-2 items-center">
+        <label for="year" class="font-semibold">السنة</label>
+        <select id="year" x-model="year" @change="load()" class="min-h-[44px] px-3 border border-[#7a8f89] rounded-md bg-white">
+          <template x-for="y in years()" :key="y"><option :value="y" :selected="y === year" x-text="y"></option></template>
+        </select>
+      </div>
     </div>
   </header>
 
-  <p id="status" role="status" aria-live="polite" class="mb-2" x-text="status"></p>
-  <p id="error" role="alert" tabindex="-1" class="mb-2 font-bold border-2 border-red-800 p-2" x-show="error" x-text="error"></p>
+  <div class="max-w-5xl mx-auto px-6">
+    <p id="status" role="status" aria-live="polite" class="sr-only" x-text="status"></p>
+    <p id="error" role="alert" tabindex="-1" class="mt-3 font-bold border-2 border-red-800 p-2" x-show="error" x-text="error"></p>
+  </div>
 
-  <main id="main" tabindex="-1" x-show="months.length" x-cloak>
+  <main id="main" tabindex="-1">
 
-    <!-- 1. The latest frozen month, else the current one -->
-    <section aria-labelledby="month-h" class="mb-8">
-      <h2 id="month-h" class="text-xl font-bold mb-2" x-text="'شهر ' + monthName(card.month) + (card.current ? ' (جارٍ)' : '')"></h2>
-      <dl class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        <template x-for="c in cardItems()" :key="c.label">
-          <div class="border border-gray-700 p-3">
-            <dt x-text="c.label"></dt>
-            <dd class="text-2xl font-bold" x-text="c.value"></dd>
-          </div>
-        </template>
-      </dl>
-    </section>
-
-    <!-- 2. Every month -->
-    <section aria-labelledby="months-h" class="mb-8">
-      <h2 id="months-h" class="text-xl font-bold mb-2">كل الأشهر</h2>
-      <div class="overflow-x-auto">
-        <table class="text-sm">
-          <caption x-text="'أرقام كل شهر في ' + year"></caption>
-          <thead><tr>
-            <th scope="col">الشهر</th>
-            <template x-for="c in MONTH_COLUMNS" :key="c.key"><th scope="col" x-text="c.label"></th></template>
-          </tr></thead>
-          <tbody>
-            <template x-for="m in months" :key="m.month">
-              <tr>
-                <th scope="row" x-text="monthName(m.month) + (isFrozen(m.month) ? '' : ' (جارٍ)')"></th>
-                <template x-for="c in MONTH_COLUMNS" :key="c.key"><td x-text="show(m, c)"></td></template>
-              </tr>
-            </template>
-          </tbody>
-        </table>
+    <!-- The month as one sentence, then the contact links; the links show even when the numbers fail to load (Kamal, 2026-10-28). -->
+    <section aria-labelledby="month-h" class="bg-[#e6f2ef]">
+      <div class="max-w-5xl mx-auto px-6 pt-14 pb-12">
+        <h2 id="month-h" class="text-xl font-semibold text-[#006655] mb-5"
+            x-text="months.length ? 'شهر ' + monthName(card.month) + (card.current ? ' (جارٍ)' : '') : 'تبرّع وتواصل'">تبرّع وتواصل</h2>
+        <div x-show="months.length" x-cloak>
+          <p class="font-amiri font-bold text-[30px] sm:text-[44px] leading-[1.55] max-w-[30ch]" x-text="monthSentence()"></p>
+          <p class="mt-6 text-[#3d555d] max-w-[60ch]">تُحسب الأرقام آلياً من تقارير المعلمين، وتثبت أرقام كل شهر بعد الخامس من الشهر الذي يليه فلا تتغير.</p>
+        </div>
+        <p class="mt-6 max-w-[60ch]">لمن أراد أن يتبرع للأكاديمية أو يسأل عنها:</p>
+        <div class="flex flex-wrap gap-3 mt-4">
+          <a href="https://wa.me/201037398740" target="_blank" rel="noopener"
+             aria-label="اكفل طالباً عبر WhatsApp (يفتح في نافذة جديدة)"
+             class="inline-flex items-center min-h-[48px] px-7 rounded-lg bg-[#006655] hover:bg-[#004d40] text-white font-semibold">اكفل طالباً عبر WhatsApp</a>
+          <a href="tel:+201037398740"
+             class="inline-flex items-center gap-1.5 min-h-[48px] px-6 rounded-lg border-2 border-[#006655] text-[#006655] font-semibold">اتصل بالإدارة: <span dir="ltr" class="select-all">+201037398740</span></a>
+        </div>
       </div>
     </section>
 
-    <!-- What the numbers mean -->
-    <section aria-labelledby="terms-h" class="mb-8">
-      <h2 id="terms-h" class="text-xl font-bold mb-2">معاني الأرقام</h2>
-      <dl class="space-y-2">
-        <template x-for="t in TERMS" :key="t.term">
-          <div><dt class="font-bold inline" x-text="t.term + ': '"></dt><dd class="inline" x-text="t.meaning"></dd></div>
-        </template>
-      </dl>
-    </section>
+    <div x-show="months.length" x-cloak class="max-w-5xl mx-auto px-6">
 
-    <!-- 3. The year so far -->
-    <section aria-labelledby="year-h" class="mb-8" x-show="totals">
-      <h2 id="year-h" class="text-xl font-bold mb-2" x-text="'السنة ' + year + ' حتى الآن'"></h2>
-      <dl class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        <template x-for="c in TOTAL_COLUMNS" :key="c.key">
-          <div class="border border-gray-700 p-3">
-            <dt x-text="c.label"></dt>
-            <dd class="text-2xl font-bold" x-text="totals ? show(totals, c) : ''"></dd>
-          </div>
-        </template>
-      </dl>
-    </section>
+      <section aria-labelledby="year-h" class="pt-12" x-show="totals">
+        <h2 id="year-h" class="font-amiri text-[32px] font-bold mb-3" x-text="'السنة ' + year + ' حتى الآن'"></h2>
+        <p class="text-xl max-w-[62ch]" x-text="yearSentence()"></p>
+      </section>
 
-    <!-- 4. Month by month -->
-    <section aria-labelledby="charts-h" class="mb-8">
-      <h2 id="charts-h" class="text-xl font-bold mb-2">شهراً بشهر</h2>
-      <div class="grid sm:grid-cols-2 gap-6">
-        <template x-for="c in CHART_COLUMNS" :key="c.key">
-          <figure>
-            <figcaption class="font-bold mb-1" x-text="c.label"></figcaption>
-            <div x-html="chart(c)" aria-hidden="true"></div>
-            <table class="sr-only">
-              <caption x-text="c.label + ' في كل شهر'"></caption>
-              <thead><tr><th scope="col">الشهر</th><th scope="col" x-text="c.label"></th></tr></thead>
-              <tbody>
-                <template x-for="m in months" :key="m.month">
-                  <tr><th scope="row" x-text="monthName(m.month)"></th><td x-text="show(m, c)"></td></tr>
-                </template>
-              </tbody>
-            </table>
-          </figure>
-        </template>
-      </div>
-    </section>
+      <section aria-labelledby="charts-h" class="pt-12">
+        <h2 id="charts-h" class="font-amiri text-[32px] font-bold mb-6">شهراً بشهر</h2>
+        <div class="grid sm:grid-cols-2 gap-10">
+          <template x-for="c in CHART_COLUMNS" :key="c.key">
+            <figure>
+              <figcaption class="font-semibold mb-3" x-text="c.label"></figcaption>
+              <div x-html="chart(c)" aria-hidden="true"></div>
+              <table class="sr-only">
+                <caption x-text="c.label + ' في كل شهر'"></caption>
+                <thead><tr><th scope="col">الشهر</th><th scope="col" x-text="c.label"></th></tr></thead>
+                <tbody>
+                  <template x-for="m in months" :key="m.month">
+                    <tr><th scope="row" x-text="monthName(m.month)"></th><td x-text="show(m, c)"></td></tr>
+                  </template>
+                </tbody>
+              </table>
+            </figure>
+          </template>
+        </div>
+      </section>
 
-    <p class="text-sm" x-show="updated" x-text="'آخر تحديث للأرقام: ' + updated"></p>
+      <section aria-labelledby="months-h" class="pt-12">
+        <h2 id="months-h" class="font-amiri text-[32px] font-bold mb-4">كل الأشهر</h2>
+        <div class="overflow-x-auto">
+          <table class="text-[15px] w-full">
+            <caption x-text="'أرقام كل شهر في ' + year"></caption>
+            <thead><tr>
+              <th scope="col">الشهر</th>
+              <template x-for="c in MONTH_COLUMNS" :key="c.key"><th scope="col" x-text="c.label"></th></template>
+            </tr></thead>
+            <tbody>
+              <template x-for="m in months" :key="m.month">
+                <tr>
+                  <th scope="row" x-text="monthName(m.month) + (isFrozen(m.month) ? '' : ' (جارٍ)')"></th>
+                  <template x-for="c in MONTH_COLUMNS" :key="c.key"><td x-text="show(m, c)"></td></template>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section aria-labelledby="terms-h" class="pt-12 pb-16">
+        <h2 id="terms-h" class="font-amiri text-[32px] font-bold mb-4">معاني الأرقام</h2>
+        <dl class="grid sm:grid-cols-2 gap-x-10 gap-y-5 max-w-4xl">
+          <template x-for="t in TERMS" :key="t.term">
+            <div><dt class="font-semibold" x-text="t.term"></dt><dd class="text-[#3d555d]" x-text="t.meaning"></dd></div>
+          </template>
+        </dl>
+      </section>
+    </div>
   </main>
 
-  <!-- Outside <main>, so it shows even when the numbers fail to load (Kamal, 2026-10-28). -->
-  <section aria-labelledby="contact-h" class="mt-8 border-t border-gray-700 pt-4">
-    <h2 id="contact-h" class="text-xl font-bold mb-2">تبرّع وتواصل</h2>
-    <p>لمن أراد أن يتبرع للأكاديمية أو يسأل عنها، فرقم الإدارة:
-      <span dir="ltr" class="font-bold select-all">+201037398740</span></p>
-    <p class="mt-2"><a href="https://wa.me/201037398740" target="_blank" rel="noopener" class="underline font-bold"
-       aria-label="تواصل على WhatsApp (يفتح في نافذة جديدة)">تواصل على WhatsApp</a></p>
-  </section>
+  <footer class="border-t border-[#d1dedb]">
+    <div class="max-w-5xl mx-auto px-6 py-6 flex flex-wrap gap-4 justify-between text-[15px] text-[#556b73]">
+      <p x-show="updated" x-text="'آخر تحديث للأرقام: ' + updated"></p>
+      <a href="https://wa.me/201037398740" target="_blank" rel="noopener" class="underline text-[#006655]"
+         aria-label="تواصل على WhatsApp (يفتح في نافذة جديدة)">تواصل على WhatsApp</a>
+    </div>
+  </footer>
 </div>
 
 <script>
@@ -157,8 +166,6 @@
     { key: 'كفالة الطالب في الشهر', label: 'كفالة الطالب في الشهر', money: true },
     { key: 'التكريمات', label: 'التكريمات' },
   ];
-  // The cards show what a donor asks first; the table keeps the rest.
-  const CARD_KEYS = ['من حضر في الشهر', 'الساعات', 'كفالة الطالب في الشهر'];
   const TOTAL_COLUMNS = [
     { key: 'عدد الطلاب الكلي', label: 'الطلاب' },
     { key: 'ساعات التدريس', label: 'ساعات التدريس' },
@@ -245,7 +252,10 @@
               .forEach(r => { byMonth[r['الشهر']] = r; });
             this.months = Object.keys(byMonth).sort().map(m => Object.assign({ month: m }, byMonth[m]));
             const frozen = this.months.filter(m => this.isFrozen(m.month));
-            const pick = frozen.length ? frozen[frozen.length - 1] : this.months[this.months.length - 1];
+            const latest = this.months[this.months.length - 1];
+            let pick = frozen.length ? frozen[frozen.length - 1] : latest;
+            // A settled month without a student count (September 2026) makes a thin headline; the month in progress says more.
+            if (pick && !this.number(pick['من حضر في الشهر'])) pick = latest;
             this.card = { month: pick ? pick.month : '', current: pick ? !this.isFrozen(pick.month) : false };
             this.status = this.months.length ? 'حُمّلت أرقام ' + this.year + '.' : 'لا أرقام لهذه السنة بعد.';
           })
@@ -278,10 +288,27 @@
         const text = n.toLocaleString('en-US', { maximumFractionDigits: 2 });
         return c.money ? text + ' جنيه' : text;
       },
-      cardItems() {
+      // What a donor asks first, as one sentence. A clause whose number is missing or zero drops out
+      // (September 2026 has hours but no student count), and hours are rounded: the table keeps the exact value.
+      monthSentence() {
         const m = this.months.find(x => x.month === this.card.month);
-        return m ? MONTH_COLUMNS.filter(c => CARD_KEYS.includes(c.key))
-          .map(c => ({ label: c.label, value: this.show(m, c) })) : [];
+        if (!m) return '';
+        const students = this.number(m['من حضر في الشهر']);
+        const hours = this.number(m['الساعات']);
+        const kafala = this.number(m['كفالة الطالب في الشهر']);
+        const clauses = [];
+        if (students) clauses.push(['حضر', 'حلقاتِ القرآن ' + students.toLocaleString('en-US') + ' من الطلاب']);
+        if (hours) clauses.push(['بلغت', 'ساعات التدريس ' + Math.round(hours).toLocaleString('en-US') + ' ساعة']);
+        if (kafala) clauses.push(['كانت', 'كفالة الطالب الواحد في الشهر ' + this.show(m, MONTH_COLUMNS.find(c => c.key === 'كفالة الطالب في الشهر'))]);
+        return clauses.map(([verb, rest], i) => (i ? 'و' + verb : verb) + ' ' + rest).join('، ') + (clauses.length ? '.' : '');
+      },
+      yearSentence() {
+        if (!this.totals) return '';
+        const total = key => this.show(this.totals, TOTAL_COLUMNS.find(c => c.key === key));
+        const hours = this.number(this.totals['ساعات التدريس']);
+        return 'منذ أول السنة درس في الأكاديمية ' + total('عدد الطلاب الكلي') + ' من الطلاب، في '
+          + total('عدد الحلقات') + ' حلقة، وبلغت ساعات التدريس '
+          + (hours === null ? total('ساعات التدريس') : Math.round(hours).toLocaleString('en-US') + ' ساعة') + '.';
       },
       // One series, one axis: bars from a zero baseline, each month's value in its tooltip.
       chart(c) {
@@ -293,16 +320,17 @@
         const base = H - bottom;
         const shown = new Set();
         const valued = points.filter(p => p.value !== null);
-        if (valued.length) {
-          shown.add(valued[valued.length - 1].month);
-          shown.add(valued.reduce((a, p) => (p.value > a.value ? p : a)).month);
-        }
+        // An empty frame reads as a broken chart; say why it is empty instead.
+        if (!valued.length) return '<p style="color:#556b73;padding:2rem 0">لا يُحسب بعد في هذه السنة.</p>';
+        shown.add(valued[valued.length - 1].month);
+        shown.add(valued.reduce((a, p) => (p.value > a.value ? p : a)).month);
         const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
         const parts = points.map((p, i) => {
           // Right to left, as the page reads: the first month on the right.
           const x = W - side - (i + 1) * slot + (slot - bar) / 2;
           const label = `<text class="chart-text" x="${x + bar / 2}" y="${H - 8}" text-anchor="middle">${esc(MONTH_NAMES[Number(p.month.slice(5)) - 1])}</text>`;
-          if (p.value === null) return label;
+          // A month not counted gets a grey line on the baseline, so its gap reads as "not counted", not as zero.
+          if (p.value === null) return `<rect class="bar-none" x="${x}" y="${base - 3}" width="${bar}" height="3"/>${label}`;
           const h = Math.max(2, (p.value / max) * (base - top));
           const y = base - h;
           const r = Math.min(4, bar / 2, h);
@@ -313,7 +341,8 @@
           const text = shown.has(p.month)
             ? `<text class="chart-value" x="${x + bar / 2}" y="${y - 6}" text-anchor="middle">${esc(p.value.toLocaleString('en-US', { maximumFractionDigits: 2 }))}</text>`
             : '';
-          return `<path class="bar" d="${path}">${tip}</path>${text}${label}`;
+          const tone = p.month === valued[valued.length - 1].month ? 'bar bar-last' : 'bar';
+          return `<path class="${tone}" d="${path}">${tip}</path>${text}${label}`;
         }).join('');
         return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="presentation" focusable="false" style="direction:ltr">`
           + `<line class="axis" x1="${side}" x2="${W - side}" y1="${base}" y2="${base}"/>${parts}</svg>`;
