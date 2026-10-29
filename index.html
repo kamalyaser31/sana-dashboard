@@ -205,7 +205,7 @@
           <label for="teacher-select" class="font-bold block">المعلم</label>
           <select id="teacher-select" x-model="teacher" class="border border-gray-700 p-1">
             <option value="*" :selected="teacher === '*'">كل المعلمين</option>
-            <template x-for="t in data.teachers" :key="t.name"><option :value="t.name" :selected="t.name === teacher" x-text="t.name + ' (' + t.students.length + ')'"></option></template>
+            <template x-for="t in data.teachers" :key="t.name"><option :value="t.name" :selected="t.name === teacher" x-text="t.name + ' (' + t.students.filter(s => isActive(s)).length + ')'"></option></template>
           </select>
         </div>
         <div>
@@ -216,15 +216,21 @@
         <div>
           <label for="absent-filter" class="font-bold block">اعرض</label>
           <select id="absent-filter" x-model="absentDays" class="border border-gray-700 p-1" aria-describedby="search-count">
-            <option value="0">كل الطلاب</option>
+            <option value="0">كل النشطين</option>
             <option value="14">الغائبين أكثر من 14 يوماً</option>
-            <option value="30">الغائبين أكثر من 30 يوماً</option>
+          </select>
+        </div>
+        <div>
+          <label for="msg-month" class="font-bold block">شهر رسالة وليّ الأمر</label>
+          <select id="msg-month" x-model="msgMonth" class="border border-gray-700 p-1">
+            <template x-for="m in messageMonths()" :key="m"><option :value="m" :selected="m === msgMonth" x-text="m"></option></template>
           </select>
         </div>
       </div>
+      <p class="mb-2" x-text="'هنا من حضر في آخر ' + activeDays() + ' يوماً؛ ومن غاب أكثر منها ففي قسم «الطلاب الغائبون».'"></p>
       <div class="overflow-x-auto">
         <table class="text-sm">
-          <caption x-text="(absentDays === '0' ? 'طلاب ' : 'الغائبون أكثر من ' + absentDays + ' يوماً من طلاب ') + teacherLabel() + '، الأحدث حضوراً أولاً'"></caption>
+          <caption x-text="(absentDays === '0' ? 'الطلاب النشطون عند ' : 'الغائبون أكثر من ' + absentDays + ' يوماً من النشطين عند ') + teacherLabel() + '، الأحدث حضوراً أولاً'"></caption>
           <thead><tr>
             <th scope="col">الاسم</th><th scope="col" x-show="teacher === '*'">المعلم</th><th scope="col">الجنس</th><th scope="col">الفئة</th>
             <th scope="col">أول ظهور</th><th scope="col">آخر ظهور</th><th scope="col">أيام الغياب</th><th scope="col">الحضور</th>
@@ -257,18 +263,141 @@
                   <a x-show="s.phone" :href="waLink(s)" target="_blank" rel="noopener" class="underline ms-1"
                      :aria-label="'راسل ' + s.name + ' على WhatsApp' + (absentMessage(s) ? ' برسالة غياب جاهزة' : '') + ' (يفتح في نافذة جديدة)'"
                      x-text="absentMessage(s) ? 'WhatsApp برسالة غياب' : 'WhatsApp'"></a>
+                  <a x-show="s.phone" :href="monthLink(s)" target="_blank" rel="noopener" class="underline ms-1"
+                     :aria-label="'أرسل لوليّ أمر ' + s.name + ' خلاصة شهر ' + msgMonth + ' على WhatsApp (يفتح في نافذة جديدة)'">رسالة الشهر</a>
                 </td>
               </tr>
             </template>
           </tbody>
         </table>
       </div>
-      <p class="mt-2">
+      <p class="mt-2 flex flex-wrap gap-2 items-center">
         <button type="button" class="border border-gray-900 px-3 py-1 font-bold disabled:opacity-50"
-                :disabled="busy || !changedStudents().length" aria-describedby="students-changed"
-                @click="saveStudents()">احفظ الطلاب</button>
-        <span id="students-changed" class="ms-2" x-text="changedStudents().length ? 'تغيّر ' + changedStudents().length + ' طالباً' : 'لا تغيير'"></span>
+                :disabled="busy || !changedStudents(true).length" aria-describedby="students-changed"
+                @click="saveStudents(true)">احفظ الطلاب</button>
+        <span id="students-changed" x-text="changedStudents(true).length ? 'تغيّر ' + changedStudents(true).length + ' طالباً' : 'لا تغيير'"></span>
+        <button type="button" class="border border-gray-900 px-3 py-1" :disabled="!filteredStudents().length"
+                aria-describedby="students-download-hint" @click="downloadStudents(filteredStudents(), 'الطلاب النشطون', teacherLabel())">نزّل القائمة</button>
+        <span id="students-download-hint">ملف CSV يفتحه Excel، فيه ما يعرضه الجدول بعد البحث والتصفية.</span>
       </p>
+      </div>
+    </section>
+
+    <!-- 3a. Students absent past ACTIVE_DAYS: out of the lists, still in the numbers -->
+    <section id="absent" aria-labelledby="absent-h" class="mb-8">
+      <h2 id="absent-h" tabindex="-1" class="text-xl font-bold mb-2">
+        <button type="button" class="text-start w-full" aria-controls="absent-body"
+                :aria-expanded="String(isOpen('absent'))" @click="toggleSection('absent')"><span aria-hidden="true" x-text="isOpen('absent') ? '− ' : '+ '"></span>الطلاب الغائبون</button>
+      </h2>
+      <div id="absent-body" x-show="isOpen('absent')">
+      <p class="mb-2" x-text="'من غاب أكثر من ' + activeDays() + ' يوماً. لا يُحذف من السجل ولا من الأرقام، ويعود إلى قسم «الطلاب» من أول تقرير يرد فيه.'"></p>
+      <div class="flex flex-wrap gap-4 mb-2">
+        <div>
+          <label for="abs-teacher" class="font-bold block">المعلم</label>
+          <select id="abs-teacher" x-model="absTeacher" class="border border-gray-700 p-1">
+            <option value="*" :selected="absTeacher === '*'">كل المعلمين</option>
+            <template x-for="t in data.teachers" :key="t.name"><option :value="t.name" :selected="t.name === absTeacher" x-text="t.name + ' (' + t.students.filter(s => !isActive(s)).length + ')'"></option></template>
+          </select>
+        </div>
+        <div>
+          <label for="abs-search" class="font-bold block">ابحث بالاسم</label>
+          <input id="abs-search" type="search" x-model="absSearch" class="border border-gray-700 p-1" aria-describedby="abs-count">
+          <p id="abs-count" x-text="absentStudents().length + ' طالباً'"></p>
+        </div>
+      </div>
+      <div class="overflow-x-auto" x-show="absentStudents().length">
+        <table class="text-sm">
+          <caption x-text="'الطلاب الغائبون عند ' + (absTeacher === '*' ? 'كل المعلمين' : absTeacher) + '، الأحدث حضوراً أولاً'"></caption>
+          <thead><tr>
+            <th scope="col">الاسم</th><th scope="col" x-show="absTeacher === '*'">المعلم</th><th scope="col">الجنس</th><th scope="col">الفئة</th>
+            <th scope="col">أول ظهور</th><th scope="col">آخر ظهور</th><th scope="col">أيام الغياب</th><th scope="col">الحضور</th>
+            <th scope="col">آخر حفظ</th><th scope="col">التكريمات</th><th scope="col">السن</th><th scope="col">سنة الميلاد والهاتف</th>
+          </tr></thead>
+          <tbody>
+            <template x-for="(s, i) in absentStudents()" :key="k(s)">
+              <tr>
+                <th scope="row" x-text="s.name"></th>
+                <td x-show="absTeacher === '*'" x-text="s.teacher"></td>
+                <td>
+                  <label :for="'ag-' + i" class="sr-only">الجنس</label>
+                  <select :id="'ag-' + i" x-model="genders[k(s)]" class="border border-gray-700 p-1">
+                    <option value="ذكر">ذكر</option><option value="أنثى">أنثى</option>
+                  </select>
+                </td>
+                <td x-text="s.category"></td><td x-text="s.firstSeen"></td><td x-text="s.lastSeen"></td>
+                <td x-text="daysAway(s)"></td><td x-text="s.attendance"></td><td x-text="s.lastHifz"></td><td x-text="s.honors"></td>
+                <td x-text="s.age === '' ? '' : s.age + ' سنة'"></td>
+                <td>
+                  <label :for="'aby-' + i" class="sr-only">سنة الميلاد</label>
+                  <input :id="'aby-' + i" type="text" inputmode="numeric" maxlength="4" placeholder="سنة الميلاد"
+                         x-model="details[k(s)].birthYear" class="border border-gray-700 p-1 w-24">
+                  <label :for="'aph-' + i" class="sr-only">الهاتف</label>
+                  <input :id="'aph-' + i" type="tel" dir="ltr" placeholder="+20…"
+                         x-model="details[k(s)].phone" class="border border-gray-700 p-1 w-40">
+                  <a x-show="s.phone" :href="waLink(s)" target="_blank" rel="noopener" class="underline ms-1"
+                     :aria-label="'راسل ' + s.name + ' على WhatsApp برسالة غياب جاهزة (يفتح في نافذة جديدة)'">WhatsApp برسالة غياب</a>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+      <p x-show="!absentStudents().length">لا غائبين هنا.</p>
+      <p class="mt-2 flex flex-wrap gap-2 items-center">
+        <button type="button" class="border border-gray-900 px-3 py-1 font-bold disabled:opacity-50"
+                :disabled="busy || !changedStudents(false).length" aria-describedby="absent-changed"
+                @click="saveStudents(false)">احفظ الغائبين</button>
+        <span id="absent-changed" x-text="changedStudents(false).length ? 'تغيّر ' + changedStudents(false).length + ' طالباً' : 'لا تغيير'"></span>
+        <button type="button" class="border border-gray-900 px-3 py-1" :disabled="!absentStudents().length"
+                aria-describedby="absent-download-hint"
+                @click="downloadStudents(absentStudents(), 'الطلاب الغائبون', absTeacher === '*' ? 'كل المعلمين' : absTeacher)">نزّل القائمة</button>
+        <span id="absent-download-hint">ملف CSV يفتحه Excel، فيه ما يعرضه الجدول بعد البحث.</span>
+      </p>
+      </div>
+    </section>
+
+    <!-- 3c. One student's last halaqat, with their report files -->
+    <section id="history" aria-labelledby="history-h" class="mb-8">
+      <h2 id="history-h" tabindex="-1" class="text-xl font-bold mb-2">
+        <button type="button" class="text-start w-full" aria-controls="history-body"
+                :aria-expanded="String(isOpen('history'))" @click="toggleSection('history')"><span aria-hidden="true" x-text="isOpen('history') ? '− ' : '+ '"></span>سجل الطالب</button>
+      </h2>
+      <div id="history-body" x-show="isOpen('history')">
+      <p class="mb-2">آخر عشر حلقات للطالب، الأحدث أولاً، ولكل حلقة رابط ملف تقريرها؛ ابحث فيه عن اسمه. والتقارير قبل 2026-10-27 بلا رابط.</p>
+      <div class="flex flex-wrap gap-4 mb-2">
+        <div>
+          <label for="his-teacher" class="font-bold block">المعلم</label>
+          <select id="his-teacher" x-model="hisTeacher" @change="hisKey = ''" class="border border-gray-700 p-1">
+            <template x-for="t in data.teachers" :key="t.name"><option :value="t.name" :selected="t.name === hisTeacher" x-text="t.name"></option></template>
+          </select>
+        </div>
+        <div>
+          <label for="his-student" class="font-bold block">الطالب</label>
+          <select id="his-student" x-model="hisKey" class="border border-gray-700 p-1">
+            <option value="">-- اختر --</option>
+            <template x-for="s in historyStudents()" :key="s.key"><option :value="s.key" :selected="s.key === hisKey" x-text="s.name + (isActive(s) ? '' : ' (غائب)')"></option></template>
+          </select>
+        </div>
+      </div>
+      <div class="overflow-x-auto" x-show="historyRows().length">
+        <table class="text-sm">
+          <caption x-text="'آخر حلقات ' + historyName() + ' عند ' + hisTeacher + '، الأحدث أولاً'"></caption>
+          <thead><tr><th scope="col">التاريخ</th><th scope="col">الفترة</th><th scope="col">رقم الحلقة</th><th scope="col">التقرير</th></tr></thead>
+          <tbody>
+            <template x-for="h in historyRows()" :key="h.slot">
+              <tr>
+                <th scope="row" x-text="h.day"></th><td x-text="h.session"></td><td x-text="h.num"></td>
+                <td>
+                  <a x-show="h.link" :href="h.link" target="_blank" rel="noopener" class="underline"
+                     :aria-label="'افتح تقرير ' + h.day + ' ' + h.session + ' (نافذة جديدة)'">افتح التقرير</a>
+                  <span x-show="!h.link">لا رابط</span>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+      <p x-show="hisKey && !historyRows().length">لا حلقات لهذا الطالب.</p>
       </div>
     </section>
 
@@ -360,7 +489,7 @@
                 :aria-expanded="String(isOpen('fix-name'))" @click="toggleSection('fix-name')"><span aria-hidden="true" x-text="isOpen('fix-name') ? '− ' : '+ '"></span>تصحيح اسم</button>
       </h2>
       <div id="fix-name-body" x-show="isOpen('fix-name')">
-      <p class="mb-2">اختر المعلم في قسم الطلاب، ثم الاسم الخطأ، ثم الصحيح. والدمج فوري لا يُنقض.</p>
+      <p class="mb-2">اختر المعلم في قسم الطلاب، ثم الاسم الخطأ من النشطين، ثم الصحيح من الطلاب كلهم، لأن الغائب قد يعود باسم محرّف. والدمج فوري لا يُنقض.</p>
       <p x-show="teacher === '*'" class="font-bold mb-2">اختر معلماً واحداً في قسم الطلاب أولاً.</p>
       <form x-show="teacher !== '*'" @submit.prevent="reviewAlias()" class="flex flex-col gap-3 max-w-xl">
         <p>المعلم: <strong x-text="teacher"></strong></p>
@@ -368,7 +497,7 @@
           <label for="alias-from" class="font-bold block">الاسم كما ورد (الخطأ)</label>
           <select id="alias-from" x-model="aliasFrom" required class="border border-gray-700 p-1 w-full">
             <option value="">-- اختر --</option>
-            <template x-for="s in currentStudents()" :key="k(s)">
+            <template x-for="s in currentStudents().filter(x => isActive(x))" :key="k(s)">
               <option :value="s.name" x-text="s.name + (s.isNew ? ' (جديد)' : '') + '، حضر ' + s.attendance"></option>
             </template>
           </select>
@@ -382,7 +511,7 @@
             <select id="alias-to-list" x-model="aliasToList" class="border border-gray-700 p-1 w-full">
               <option value="">-- اختر --</option>
               <template x-for="s in currentStudents().filter(x => x.name !== aliasFrom)" :key="k(s)">
-                <option :value="s.name" x-text="s.name + '، حضر ' + s.attendance"></option>
+                <option :value="s.name" x-text="s.name + '، حضر ' + s.attendance + (isActive(s) ? '' : '، غائب')"></option>
               </template>
             </select>
           </div>
@@ -433,10 +562,10 @@
     <section id="rates" aria-labelledby="rates-h" class="mb-8">
       <h2 id="rates-h" tabindex="-1" class="text-xl font-bold mb-2">
         <button type="button" class="text-start w-full" aria-controls="rates-body"
-                :aria-expanded="String(isOpen('rates'))" @click="toggleSection('rates')"><span aria-hidden="true" x-text="isOpen('rates') ? '− ' : '+ '"></span>أسعار الساعة والمستحقات</button>
+                :aria-expanded="String(isOpen('rates'))" @click="toggleSection('rates')"><span aria-hidden="true" x-text="isOpen('rates') ? '− ' : '+ '"></span>الرواتب والمصروفات</button>
       </h2>
       <div id="rates-body" x-show="isOpen('rates')">
-      <p class="mb-2">سعر الساعة بالجنيه لكل معلم، والساعات من شيته بلا المكرر. وكل شهر لم يثبت يُحسب بالسعر الحالي.</p>
+      <p class="mb-2">مستحقات المعلمين بالجنيه: الساعات من شيت المعلم بلا المكرر، وكل شهر لم يثبت يُحسب بالسعر الحالي. والأسعار والمصروفات تحت زر «عدّل الأسعار».</p>
       <p x-show="data.unpriced.length" class="font-bold mb-2"
          x-text="'لا سعر لـ: ' + data.unpriced.join('، ') + '. فمصروف أشهرهم فارغ في الملف العام حتى يُكتب.'"></p>
 
@@ -453,7 +582,33 @@
       <div x-show="data.payOpen">
       <p class="mb-2">الرواتب مفتوحة حتى <span x-text="data.payUntil"></span>.
         <button type="button" class="border border-gray-900 px-2 ms-1" @click="lockPay()">أقفل الرواتب</button></p>
-      <form @submit.prevent="savePay()">
+      <div>
+        <label for="pay-month" class="font-bold block">شهر المستحقات</label>
+        <select id="pay-month" x-model="payMonth" class="border border-gray-700 p-1">
+          <template x-for="m in payMonths()" :key="m"><option :value="m" :selected="m === payMonth" x-text="m"></option></template>
+        </select>
+      </div>
+      <div class="overflow-x-auto mt-2" x-show="payRows().length">
+        <table class="text-sm">
+          <caption x-text="'مستحقات المعلمين في ' + payMonth + ' بالجنيه'"></caption>
+          <thead><tr><th scope="col">المعلم</th><th scope="col">الساعات</th><th scope="col">السعر</th><th scope="col">المستحق</th></tr></thead>
+          <tbody>
+            <template x-for="p in payRows()" :key="p.teacher">
+              <tr><th scope="row" x-text="p.teacher"></th><td x-text="p.hours"></td>
+                <td x-text="p.rate === '' ? 'لا سعر' : p.rate"></td><td x-text="p.pay === '' ? 'لا سعر' : p.pay"></td></tr>
+            </template>
+            <tr><th scope="row">المجموع</th><td x-text="payTotal().hours"></td><td></td>
+              <td x-text="payTotal().pay"></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p x-show="!payRows().length" class="mt-2">لا ساعات في شيتات المعلمين لهذا الشهر بعد.</p>
+
+      <p class="mt-4">
+        <button type="button" id="pay-edit-toggle" class="border-2 border-gray-900 px-3 py-1 font-bold" aria-controls="pay-edit"
+                :aria-expanded="String(payEditing)" @click="togglePayEdit()">عدّل الأسعار</button>
+      </p>
+      <form id="pay-edit" x-show="payEditing" @submit.prevent="savePay()" class="border border-gray-700 p-3 mt-2">
       <div class="overflow-x-auto">
         <table class="text-sm">
           <caption>سعر الساعة لكل معلم</caption>
@@ -498,84 +653,31 @@
         </div>
         <p id="honor-amount-hint">يُحسب من هذا الشهر، ولا يمس ما قبله. وبلا مبلغ يبقى مصروف شهر التكريم فارغاً.</p>
       </div>
-      <button type="submit" class="border-2 border-gray-900 px-3 py-1 mt-2 font-bold disabled:opacity-50"
-              :disabled="busy || !payChanged()">احفظ الرواتب</button>
+      <fieldset class="mt-4">
+        <legend class="font-bold">المصروفات الأخرى غير الرواتب (جنيه)</legend>
+        <div class="flex flex-wrap gap-4 items-end">
+          <div>
+            <label for="exp-month" class="block">شهر المصروفات</label>
+            <select id="exp-month" x-model="expMonth" @change="expAmount = expenseOf(expMonth)" class="border border-gray-700 p-1">
+              <template x-for="m in yearMonths()" :key="m"><option :value="m" :selected="m === expMonth" x-text="m"></option></template>
+            </select>
+          </div>
+          <div>
+            <label for="exp-amount" class="block">مبلغ المصروفات الأخرى</label>
+            <input id="exp-amount" type="text" inputmode="decimal" x-model="expAmount" placeholder="لا مبلغ"
+                   class="border border-gray-700 p-1 w-24" aria-describedby="exp-hint">
+          </div>
+        </div>
+        <p id="exp-hint">يظهر مبلغ الشهر المكتوب من قبل، ويُعدَّل ولا يتكرر.</p>
+      </fieldset>
+      <button type="submit" class="border-2 border-gray-900 px-3 py-1 mt-3 font-bold disabled:opacity-50"
+              :disabled="busy || !payChanged()">احفظ الأسعار</button>
       </form>
-      <div class="mt-4">
-        <label for="pay-month" class="font-bold block">شهر المستحقات</label>
-        <select id="pay-month" x-model="payMonth" class="border border-gray-700 p-1">
-          <template x-for="m in payMonths()" :key="m"><option :value="m" :selected="m === payMonth" x-text="m"></option></template>
-        </select>
-      </div>
-      <div class="overflow-x-auto mt-2" x-show="payRows().length">
-        <table class="text-sm">
-          <caption x-text="'مستحقات المعلمين في ' + payMonth + ' بالجنيه'"></caption>
-          <thead><tr><th scope="col">المعلم</th><th scope="col">الساعات</th><th scope="col">السعر</th><th scope="col">المستحق</th></tr></thead>
-          <tbody>
-            <template x-for="p in payRows()" :key="p.teacher">
-              <tr><th scope="row" x-text="p.teacher"></th><td x-text="p.hours"></td>
-                <td x-text="p.rate === '' ? 'لا سعر' : p.rate"></td><td x-text="p.pay === '' ? 'لا سعر' : p.pay"></td></tr>
-            </template>
-            <tr><th scope="row">المجموع</th><td x-text="payTotal().hours"></td><td></td>
-              <td x-text="payTotal().pay"></td></tr>
-          </tbody>
-        </table>
-      </div>
-      <p x-show="!payRows().length" class="mt-2">لا ساعات في شيتات المعلمين لهذا الشهر بعد.</p>
-      <div class="overflow-x-auto mt-4">
-        <table class="text-sm">
-          <caption>سجل الأسعار والمصروفات الثابتة، الأحدث أولاً</caption>
-          <thead><tr><th scope="col">الوقت</th><th scope="col">الاسم</th><th scope="col">النوع</th><th scope="col">التفاصيل</th></tr></thead>
-          <tbody>
-            <template x-for="(e, i) in data.rateLog" :key="i">
-              <tr><th scope="row" x-text="e.time"></th><td x-text="e.name"></td><td x-text="e.action"></td><td x-text="e.details"></td></tr>
-            </template>
-          </tbody>
-        </table>
-        <p x-show="!data.rateLog.length">لم يُغيَّر سعر بعد.</p>
-      </div>
       </div>
       </div>
     </section>
 
-    <!-- 6. Other expenses -->
-    <section id="expenses" aria-labelledby="exp-h" class="mb-8">
-      <h2 id="exp-h" tabindex="-1" class="text-xl font-bold mb-2">
-        <button type="button" class="text-start w-full" aria-controls="expenses-body"
-                :aria-expanded="String(isOpen('expenses'))" @click="toggleSection('expenses')"><span aria-hidden="true" x-text="isOpen('expenses') ? '− ' : '+ '"></span>المصروفات</button>
-      </h2>
-      <div id="expenses-body" x-show="isOpen('expenses')">
-      <p class="mb-2">المصروفات الأخرى بالجنيه، غير الرواتب.</p>
-      <form @submit.prevent="saveExpense()" class="flex flex-wrap gap-4 items-end">
-        <div>
-          <label for="exp-month" class="font-bold block">الشهر</label>
-          <select id="exp-month" x-model="expMonth" required class="border border-gray-700 p-1">
-            <template x-for="m in yearMonths()" :key="m"><option :value="m" :selected="m === expMonth" x-text="m"></option></template>
-          </select>
-        </div>
-        <div>
-          <label for="exp-amount" class="font-bold block">المبلغ بالجنيه</label>
-          <input id="exp-amount" type="text" inputmode="decimal" x-model="expAmount" required class="border border-gray-700 p-1">
-        </div>
-        <button type="submit" class="border-2 border-gray-900 px-3 py-1 font-bold" :disabled="busy">احفظ المصروف</button>
-      </form>
-      <p class="mt-1">الشهر المكتوب من قبل يُعدَّل ولا يتكرر.</p>
-      <div class="overflow-x-auto mt-3">
-        <table class="text-sm">
-          <caption>المصروفات الأخرى في السنة بالجنيه</caption>
-          <thead><tr><th scope="col">الشهر</th><th scope="col">المبلغ</th></tr></thead>
-          <tbody>
-            <template x-for="e in data.expenses" :key="e.month">
-              <tr><th scope="row" x-text="e.month"></th><td x-text="e.amount"></td></tr>
-            </template>
-          </tbody>
-        </table>
-        <p x-show="!data.expenses.length">لا مصروفات بعد.</p>
-      </div>
-      </div>
-    </section>
-
-    <!-- 7. Edit log (S-44) -->
+    <!-- 6. Edit log (S-44) -->
     <section id="log" aria-labelledby="log-h" class="mb-8">
       <h2 id="log-h" tabindex="-1" class="text-xl font-bold mb-2">
         <button type="button" class="text-start w-full" aria-controls="log-body"
@@ -637,8 +739,9 @@
       aliasFrom: '', aliasMode: 'list', aliasToList: '', aliasToTyped: '', review: null, pendingDelete: -1,
       editing: null, editHours: '', editMinutes: '', editStudents: '', pendingReport: -1,
       honTeacher: '', honKey: '', honDate: '', honReason: '', honMonth: '', pendingHonor: -1, honorAmountInput: '',
-      rates: {}, fixedAmounts: {}, payMonth: '', payPassword: '',
+      rates: {}, fixedAmounts: {}, payMonth: '', payPassword: '', payEditing: false,
       expMonth: '', expAmount: '',
+      absTeacher: '*', absSearch: '', hisTeacher: '', hisKey: '', msgMonth: '',
       openSections: {}, NUMBER_COLUMNS,
 
       init() {
@@ -753,6 +856,8 @@
           const current = String(now.getFullYear()) === this.year ? now.getMonth() + 1 : 1;
           this.expMonth = this.year + '-' + String(current).padStart(2, '0');
         }
+        this.expAmount = this.expenseOf(this.expMonth);
+        if (!data.payOpen) this.payEditing = false;
         this.rates = {};
         data.teachers.forEach(t => { this.rates[t.name] = String(t.rate); });
         this.fixedAmounts = {};
@@ -767,6 +872,15 @@
         if (this.honorMonths().indexOf(this.honMonth) === -1) this.honMonth = data.today.slice(0, 7);
         this.pendingHonor = -1;
         this.honorAmountInput = String(data.honorAmount || '');
+        if (this.absTeacher !== '*' && !data.teachers.some(t => t.name === this.absTeacher)) this.absTeacher = '*';
+        if (!data.teachers.some(t => t.name === this.hisTeacher)) {
+          this.hisTeacher = data.teachers.length ? data.teachers[0].name : '';
+          this.hisKey = '';
+        }
+        const msgMonths = this.messageMonths();
+        if (msgMonths.indexOf(this.msgMonth) === -1) {
+          this.msgMonth = msgMonths.length > 1 ? msgMonths[msgMonths.length - 2] : (msgMonths[0] || '');
+        }
       },
 
       reportMonths() {
@@ -890,11 +1004,109 @@
         if (!s.lastSeen || !this.data) return '';
         return Math.round((Date.parse(this.data.today) - Date.parse(s.lastSeen)) / 86400000);
       },
+      // PUBLIC_STATS.ACTIVE_DAYS, sent by the script.
+      activeDays() {
+        return (this.data && this.data.activeDays) || 30;
+      },
+      // Seen in the last activeDays days. A student with no date stays in view, so no row hides unnoticed.
+      isActive(s) {
+        const days = this.daysAway(s);
+        return days === '' || days <= this.activeDays();
+      },
+      // The active students only; the absent ones have their own section.
       filteredStudents() {
         const q = this.nameKey(this.search);
         const min = Number(this.absentDays);
-        return this.currentStudents().filter(s =>
-          (!q || this.nameKey(s.name).indexOf(q) !== -1) && (!min || this.daysAway(s) > min));
+        return this.currentStudents().filter(s => this.isActive(s)
+          && (!q || this.nameKey(s.name).indexOf(q) !== -1) && (!min || this.daysAway(s) > min));
+      },
+      absentStudents() {
+        if (!this.data) return [];
+        const q = this.nameKey(this.absSearch);
+        return [].concat(...this.data.teachers.filter(t => this.absTeacher === '*' || t.name === this.absTeacher)
+          .map(t => t.students))
+          .filter(s => !this.isActive(s) && (!q || this.nameKey(s.name).indexOf(q) !== -1))
+          .sort((a, b) => (a.lastSeen < b.lastSeen ? 1 : a.lastSeen > b.lastSeen ? -1 : 0));
+      },
+      // The list as the admin sees it, with every column, for Excel: UTF-8 with a BOM.
+      downloadStudents(list, title, teacherName) {
+        const head = ['الاسم', 'المعلم', 'الجنس', 'الفئة', 'السن', 'سنة الميلاد', 'الهاتف', 'أول ظهور', 'آخر ظهور',
+          'أيام الغياب', 'الحضور', 'آخر حفظ', 'الأوسمة', 'التكريمات'];
+        const rows = list.map(s => [s.name, s.teacher, s.gender, s.category, s.age, s.birthYear, s.phone,
+          s.firstSeen, s.lastSeen, this.daysAway(s), s.attendance, s.lastHifz, s.medals, s.honors]);
+        // A leading tab keeps a phone from becoming a number, and a cell from being read as a formula.
+        const cell = v => {
+          let text = String(v === undefined || v === null ? '' : v);
+          if (/^[=+\-@]/.test(text) || /^\d{8,}$/.test(text)) text = '\t' + text;
+          return '"' + text.replace(/"/g, '""') + '"';
+        };
+        const csv = '﻿' + [head].concat(rows).map(r => r.map(cell).join(',')).join('\r\n');
+        const name = title + ' - ' + teacherName + ' - ' + this.data.today + '.csv';
+        const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = name;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        this.status = 'نُزّل الملف «' + name + '»، وفيه ' + list.length + ' طالباً.';
+      },
+
+      historyStudents() {
+        const t = this.data ? this.data.teachers.find(x => x.name === this.hisTeacher) : null;
+        return t ? t.students.slice().sort((a, b) => a.name.localeCompare(b.name, 'ar')) : [];
+      },
+      historyName() {
+        const s = this.historyStudents().find(x => x.key === this.hisKey);
+        return s ? s.name : '';
+      },
+      // Each of the student's last halaqat, with the link of its row in «تقارير الحلقات»:
+      // the same teacher, day and session label as the sheet writes it (_sessionLabel).
+      historyRows() {
+        const s = this.historyStudents().find(x => x.key === this.hisKey);
+        if (!s) return [];
+        return (s.recent || []).map(h => {
+          const label = h.num ? h.session + ' (حلقة ' + h.num + ')' : h.session;
+          const rows = this.data.reports.filter(r => r.teacher === this.hisTeacher && r.day === h.day && r.session === label);
+          const best = rows.find(r => !r.status && r.link) || rows.find(r => r.link);
+          return { slot: h.day + '|' + h.session + '|' + h.num, day: h.day, session: h.session, num: h.num,
+            link: best ? best.link : '' };
+        });
+      },
+
+      // The year's months up to this one; the page starts on the last month.
+      messageMonths() {
+        if (!this.data) return [];
+        const now = this.data.today.slice(0, 7);
+        return this.yearMonths().filter(m => m <= now);
+      },
+      monthName(month) {
+        const names = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر',
+          'نوفمبر', 'ديسمبر'];
+        return names[Number(month.slice(5, 7)) - 1] + ' ' + month.slice(0, 4);
+      },
+      // The month's summary for a parent (Kamal, 2026-10-29); the admin reviews and sends it by hand.
+      monthMessage(s, month) {
+        const she = s.gender === 'أنثى';
+        const count = (s.months && s.months[month]) || 0;
+        const rest = count % 100;
+        const halaqat = count === 1 ? 'حلقة واحدة' : count === 2 ? 'حلقتين'
+          : count + (rest >= 3 && rest <= 10 ? ' حلقات' : rest >= 11 ? ' حلقةً' : ' حلقة');
+        const lines = ['السلام عليكم ورحمة الله، هذه خلاصة شهر ' + this.monthName(month) + ' لـ' + s.name + ':'];
+        lines.push(count ? (she ? 'حضرت ' : 'حضر ') + halaqat + '.' : (she ? 'لم تحضر' : 'لم يحضر') + ' حلقة في هذا الشهر.');
+        // Memorization is kept per student, not per halaqa: a later one would not belong to this month.
+        if (s.lastHifz && s.lastHifzDate && s.lastHifzDate.slice(0, 7) <= month) lines.push((she ? 'آخر ما حفظت: ' : 'آخر ما حفظ: ') + s.lastHifz + '.');
+        const honors = this.data.honors.filter(h => h.teacher === s.teacher && h.key === s.key && h.month === month).length;
+        if (honors) {
+          lines.push((she ? 'ونالت ' : 'ونال ') + (honors === 1 ? 'تكريماً' : honors === 2 ? 'تكريمين' : honors + ' تكريمات')
+            + ' من الأكاديمية.');
+        }
+        lines.push('نسأل الله ' + (she ? 'لها' : 'له') + ' التوفيق.', 'أكاديمية سنا');
+        return lines.join('\n');
+      },
+      monthLink(s) {
+        return 'https://wa.me/' + String(s.phone).replace(/\D/g, '') + '?text=' + encodeURIComponent(this.monthMessage(s, this.msgMonth));
       },
       // A select, not <input type="month">, which screen readers announce as bare spin buttons.
       yearMonths() {
@@ -942,20 +1154,21 @@
       k(s) {
         return s.teacher + '|' + s.key;
       },
-      // Every student whose gender, birth year or phone differs from the sheet, in all teachers (U-03).
-      changedStudents() {
+      // Every student whose gender, birth year or phone differs from the sheet, in all teachers (U-03),
+      // the active ones or the absent ones: each section saves its own.
+      changedStudents(active) {
         if (!this.data) return [];
         const out = [];
         this.data.teachers.forEach(t => t.students.forEach(s => {
           const d = this.details[this.k(s)];
-          if (!d) return;
+          if (!d || this.isActive(s) !== active) return;
           if (this.genders[this.k(s)] !== s.gender || d.birthYear.trim() !== String(s.birthYear || '')
             || d.phone.trim() !== (s.phone || '')) out.push(s);
         }));
         return out;
       },
-      saveStudents() {
-        const list = this.changedStudents();
+      saveStudents(active) {
+        const list = this.changedStudents(active);
         if (list.length > MAX_STUDENTS) {
           return this.fail('تغيّر ' + list.length + ' طالباً، ويُحفظ ' + MAX_STUDENTS
             + ' في المرة على الأكثر؛ أعد بعض الخانات كما كانت، واحفظ، ثم غيّرها.');
@@ -1026,28 +1239,50 @@
         const amount = this.honorAmountInput.trim();
         return this.data && amount !== '' && amount !== String(this.data.honorAmount) ? amount : '';
       },
+      // The month's other expenses as saved, '' when none; they come only with the pay open.
+      expenseOf(month) {
+        const e = this.data && this.data.expenses.find(x => x.month === month);
+        return e ? String(e.amount) : '';
+      },
+      // A blank amount is no change: an expense is never cleared from here.
+      changedExpense() {
+        const amount = this.expAmount.trim();
+        return amount !== '' && amount !== this.expenseOf(this.expMonth) ? amount : '';
+      },
       payChanged() {
-        return this.changedRates().length > 0 || this.changedFixed().length > 0 || this.changedHonorAmount() !== '';
+        return this.changedRates().length > 0 || this.changedFixed().length > 0 || this.changedHonorAmount() !== ''
+          || this.changedExpense() !== '';
+      },
+      togglePayEdit() {
+        this.payEditing = !this.payEditing;
+        if (this.payEditing) this.focusSoon('rate-0');
       },
       // The whole pay section in one request (U-02); the server saves all or none.
       savePay() {
         const rates = this.changedRates();
         const fixed = this.changedFixed();
         const amount = this.changedHonorAmount();
-        if (!rates.length && !fixed.length && !amount) return;
+        const expense = this.changedExpense();
+        if (!rates.length && !fixed.length && !amount && !expense) return;
         const args = {};
         rates.forEach((r, i) => { args['rn' + i] = r.name; args['rv' + i] = r.value; });
         fixed.forEach((r, i) => { args['fn' + i] = r.name; args['fv' + i] = r.value; });
         if (amount) args.honorAmount = amount;
+        if (expense) { args.em = this.expMonth; args.ea = expense; }
         const said = [];
         if (rates.length) said.push('الأسعار: ' + rates.map(r => r.name + ' ' + r.value).join('، ') + ' جنيهاً للساعة');
         if (fixed.length) said.push('المصروفات الثابتة: ' + fixed.map(r => r.name + ' ' + (r.value || 'لا مبلغ')).join('، '));
         if (amount) said.push('مبلغ التكريم: ' + amount + ' جنيهاً من هذا الشهر');
-        this.call('savePay', args, 'حُفظت ' + said.join('؛ و') + '.');
+        if (expense) said.push('المصروفات الأخرى لشهر ' + this.expMonth + ': ' + expense + ' جنيهاً');
+        this.call('savePay', args, () => {
+          this.payEditing = false;
+          this.focusSoon('pay-edit-toggle');
+          return 'حُفظت ' + said.join('؛ و') + '.';
+        });
       },
       honorStudents() {
         const t = this.data ? this.data.teachers.find(x => x.name === this.honTeacher) : null;
-        return t ? t.students.slice().sort((a, b) => a.name.localeCompare(b.name, 'ar')) : [];
+        return t ? t.students.filter(s => this.isActive(s)).sort((a, b) => a.name.localeCompare(b.name, 'ar')) : [];
       },
       honorMonths() {
         if (!this.data) return [];
@@ -1094,10 +1329,6 @@
           this.focusSoon('honors-h');
           return 'حُذف تكريم ' + h.name + ' في ' + h.date + '.';
         });
-      },
-      saveExpense() {
-        this.call('saveExpense', { month: this.expMonth, amount: this.expAmount },
-          'حُفظ مصروف ' + this.expMonth + '.');
       },
     };
   }

@@ -1,7 +1,7 @@
 # حالة المشروع — sana-dashboard
 
-**الإصدار:** `1.8.1`، منشور على GitHub (`kamalyaser31/sana-dashboard`، عام) وPages: https://kamalyaser31.github.io/sana-dashboard/، و`API_URL` يشير إلى النشر `AKfycbwxv2ue…` (النسخة 34).
-**تاريخ التحديث:** `2026-10-28`
+**الإصدار:** `1.9.0` محلياً (لم يُرفع؛ 1.8.1 منشور)، منشور على GitHub (`kamalyaser31/sana-dashboard`، عام) وPages: https://kamalyaser31.github.io/sana-dashboard/، و`API_URL` يشير إلى النشر `AKfycbwxv2ue…` (النسخة 34).
+**تاريخ التحديث:** `2026-10-29`
 
 ## البنية
 
@@ -16,9 +16,13 @@
 - `donors.html` (S-61):
   - البطاقتان مقصورتان: الشهر على `CARD_KEYS` الثلاثة، والسنة على `TOTAL_COLUMNS` الثلاثة.
   - و`TERMS` يملأ قسم «معاني الأرقام».
-  - ولا رابط تبرع ولا تواصل فيها (قرار كمال، 2026-10-27).
+  - وفي آخرها، خارج `<main>`، قسم «تبرّع وتواصل»: الرقم `+201037398740` نصاً ورابط `wa.me`، بلا وسيلة دفع (كمال 2026-10-28، نقضاً لقرار 2026-10-27).
 - صفحة عامة بلا كلمة مرور ولا API، Alpine وTailwind من CDN. `YEARS` يربط كل سنة برابطي CSV لتبويبي الملف العام المنشور؛ و`readTab` يجد صف الرؤوس بأول خانة («المعلم» أو «الشهر») ويقرأ الأعمدة بأسمائها، فلا يضرّه عمود جديد؛ ويأخذ صفوف «الأكاديمية» وحدها، والأخير إن تكرر الشهر. والشهر ثابت بعد الخامس من الشهر التالي (`isFrozen`)، والخانة الفارغة «لا يُحسب». والرسوم SVG من `chart(c)`: عمود لكل شهر من اليمين، لون واحد `#2a78d6`، وقيمة آخر شهر وأعلاه مكتوبتان، و`<title>` لكل عمود؛ والرسم مخفي عن قارئ الشاشة ومعه جدول `sr-only`.
-- الأسعار والمصروفات الثابتة ومبلغ التكريم استمارة واحدة بزر «احفظ الرواتب» (U-02): `changedRates()` و`changedFixed()` و`changedHonorAmount()` يجمعان ما تغيّر، و`savePay()` يرسله طلباً واحداً (`rn`/`rv`، `fn`/`fv`، `honorAmount`). وفي الطلاب زر واحد «احفظ الطلاب» (U-03): `changedStudents()` كل صف تغيّر جنسه أو سنة ميلاده أو هاتفه عند كل المعلمين، و`saveStudents()` يرسله (`t`/`k`/`g`/`b`/`p`)، ويرفض أكثر من `MAX_STUDENTS` (50).
+- قسم «الرواتب والمصروفات» (`#rates`): جدول المستحقات ظاهر بعد فتح الرواتب، وزر «عدّل الأسعار» (`payEditing`، `aria-expanded`) يفتح استمارة `#pay-edit`: الأسعار والثابتة ومبلغ التكريم والمصروفات الأخرى (`expMonth`، `expAmount` يُملأ من `data.expenses` بـ `expenseOf`)، بزر «احفظ الأسعار» (U-02): `changedRates()` و`changedFixed()` و`changedHonorAmount()` و`changedExpense()`، و`savePay()` يرسلها طلباً واحداً (`rn`/`rv`، `fn`/`fv`، `honorAmount`، `em`/`ea`). ولا قسم «مصروفات» ولا «سجل أسعار».
+- النشطون والغائبون: `isActive(s)` = `daysAway(s) <= data.activeDays` (أو بلا تاريخ). «الطلاب» (`filteredStudents()`) للنشطين، و«الطلاب الغائبون» (`#absent`، `absentStudents()`، `absTeacher`، `absSearch`) لغيرهم بمعرّفات `ag-`/`aby-`/`aph-`. و`changedStudents(active)` و`saveStudents(active)` لكل قسم حفظه، ويرفض أكثر من `MAX_STUDENTS` (50). و«تصحيح اسم» (الخطأ) و`honorStudents()` من النشطين، والاسم الصحيح من الكل.
+- `downloadStudents(list, title, teacher)`: CSV بـ BOM في المتصفح، والخانة التي تبدأ بـ `= + - @` أو أرقام طويلة تُسبق بـ tab لئلا يقرأها Excel رقماً أو صيغة.
+- «سجل الطالب» (`#history`): `hisTeacher` و`hisKey`، و`historyRows()` تصل كل `s.recent` بصف «تقارير الحلقات» للمعلم في اليوم و`session` كما يكتبه `_sessionLabel` («صباحية (حلقة 2)»)، وتفضّل المحسوب ذا الرابط.
+- رسالة الشهر: `msgMonth` (المبدئي الشهر الماضي) و`monthMessage(s, month)` من `s.months` و`lastHifz` (إن لم يكن `lastHifzDate` بعد الشهر) وتكريمات الشهر من `data.honors`، والضمير بالجنس؛ و`monthLink(s)` رابط `wa.me`.
 - قسم الرواتب: `data.payOpen` يختار بين استمارة «افتح الرواتب» (`unlockPay`) والجداول وزر «أقفل الرواتب» (`lockPay`)؛ و`payData()` يقبل `pay` فارغاً؛ و`focusSoon` ينقل المؤشر بعد أن يُظهر x-show العنصر.
 
 ## الاختبار
