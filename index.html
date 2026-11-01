@@ -26,17 +26,19 @@
 
   <header class="mb-4">
     <h1 class="text-2xl font-bold">لوحة إدارة أكاديمية سنا</h1>
-    <p x-show="token" x-cloak>دخلتَ باسم <strong x-text="who"></strong>.
-      <button type="button" class="border border-gray-900 px-3 py-1 ms-2 min-h-[36px] inline-flex items-center text-sm font-semibold rounded hover:bg-gray-100" @click="logout()">اخرج</button></p>
-    <p x-show="test" x-cloak class="font-bold border-2 border-gray-900 p-2">وضع الاختبار: هذه بيانات مجلد الاختبار، لا بيانات الأكاديمية.</p>
-    <div x-show="data" x-cloak class="flex flex-wrap gap-3 items-center mt-1">
-      <label for="year-select" class="font-bold">السنة</label>
-      <select id="year-select" :value="year" @change="switchYear($event.target.value)" :disabled="busy"
-              class="border border-gray-700 p-1 min-h-[36px] bg-white">
-        <template x-for="y in (data ? data.years : [])" :key="y"><option :value="y" :selected="y === year" x-text="y"></option></template>
-      </select>
-      <span>وتاريخ اليوم <span x-text="data && data.today"></span>.</span>
+    <div x-show="token" x-cloak class="flex flex-wrap gap-3 items-center mt-1">
+      <span>دخلتَ باسم <strong x-text="who"></strong></span>
+      <template x-if="data"><span class="flex gap-2 items-center">
+        <label for="year-select" class="font-bold">السنة</label>
+        <select id="year-select" :value="year" @change="switchYear($event.target.value)" :disabled="busy"
+                class="border border-gray-700 p-1 min-h-[36px] bg-white">
+          <template x-for="y in data.years" :key="y"><option :value="y" :selected="y === year" x-text="y"></option></template>
+        </select>
+      </span></template>
+      <span x-show="data" x-text="'اليوم ' + (data ? data.today : '')"></span>
+      <button type="button" class="border border-gray-900 px-3 py-1 min-h-[36px] inline-flex items-center text-sm font-semibold rounded hover:bg-gray-100" @click="logout()">اخرج</button>
     </div>
+    <p x-show="test" x-cloak class="font-bold border-2 border-gray-900 p-2">وضع الاختبار: هذه بيانات مجلد الاختبار، لا بيانات الأكاديمية.</p>
     <p x-show="data && data.previousOpen" x-cloak class="mt-2 border-2 border-gray-900 p-2">
       <span x-text="'أرقام ديسمبر ' + (Number(year) - 1) + ' تُعدَّل حتى الخامس من يناير، وتقاريرها وتكريماتها ومصروفها ورواتبها في سنة ' + (Number(year) - 1) + '.'"></span>
       <button type="button" class="border border-gray-900 px-3 py-1 ms-2 min-h-[36px] text-sm font-semibold rounded hover:bg-gray-100"
@@ -105,8 +107,7 @@
                 :aria-expanded="String(isOpen('reports'))" @click="toggleSection('reports')"><span aria-hidden="true" x-text="isOpen('reports') ? '− ' : '+ '"></span>تقارير الحلقات</button>
       </h2>
       <div id="reports-body" x-show="isOpen('reports')">
-      <p class="mb-2">صفوف شيتات المعلمين كما هي؛ وما حالته «مكرر» أو «لا يُحسب» لا يدخل في الحساب.</p>
-      <p class="mb-2">تُعدَّل المدة وعدد الطلاب ويُحذف الصف حتى يثبت الشهر في خامس تاليه. والحذف لا يمس سجل الطلاب.</p>
+      <p class="mb-2">صفوف شيتات المعلمين كما هي، وما حالته «مكرر» أو «لا يُحسب» خارج الحساب.</p>
       <div class="flex flex-wrap gap-4 mb-2 items-end">
         <div>
           <label for="rep-teacher" class="font-bold block">المعلم</label>
@@ -130,8 +131,8 @@
           <caption x-text="'تقارير ' + (repTeacher === '*' ? 'كل المعلمين' : repTeacher) + ' في ' + (repMonth || 'الشهر الحالي')"></caption>
           <thead><tr>
             <th scope="col" class="nowrap" x-show="repTeacher === '*'">المعلم</th>
-            <th scope="col" class="nowrap">تاريخ التقرير</th><th scope="col" class="nowrap">نوع الحلقة / الفترة</th><th scope="col" class="nowrap">فئة الطلاب</th>
-            <th scope="col" class="nowrap">مدة الحصة</th><th scope="col" class="nowrap">عدد الطلاب</th><th scope="col">ملاحظات الإدارة</th><th scope="col" class="nowrap">الحالة</th>
+            <th scope="col" class="nowrap">تاريخ التقرير</th><th scope="col" class="nowrap">نوع الحلقة / الفترة</th>
+            <th scope="col" class="nowrap">مدة الحصة</th><th scope="col" class="nowrap">عدد الطلاب</th><th scope="col" class="nowrap">الحالة</th>
             <th scope="col" class="nowrap">إجراء</th>
           </tr></thead>
           <tbody>
@@ -144,8 +145,7 @@
                      x-text="r.session" :aria-label="r.session + '، افتح التقرير (نافذة جديدة)'"></a>
                   <span x-show="!r.link" x-text="r.session"></span>
                 </td>
-                <td class="nowrap" x-text="r.category"></td>
-                <td class="nowrap" x-text="r.duration"></td><td class="nowrap" x-text="r.students"></td><td x-text="r.notes"></td><td class="nowrap" x-text="r.status"></td>
+                <td class="nowrap" x-text="r.duration"></td><td class="nowrap" x-text="r.students"></td><td class="nowrap" x-text="r.status"></td>
                 <td class="nowrap">
                   <span x-show="!r.editable">شهر ثابت</span>
                   <span x-show="r.editable && pendingReport !== r.order" class="flex gap-1.5 flex-wrap">
@@ -166,14 +166,14 @@
             </template>
             <tr>
               <td x-show="repTeacher === '*'"></td>
-              <th scope="row">الإجمالي</th><td></td><td></td>
-              <td x-text="reportTotals().duration"></td><td x-text="reportTotals().students"></td><td></td>
+              <th scope="row">الإجمالي</th><td></td>
+              <td x-text="reportTotals().duration"></td><td x-text="reportTotals().students"></td>
               <td x-text="reportTotals().count + ' محسوباً'"></td><td></td>
             </tr>
             <tr>
               <td x-show="repTeacher === '*'"></td>
-              <th scope="row">المتوسط</th><td></td><td></td>
-              <td x-text="reportTotals().avgDuration"></td><td x-text="reportTotals().avgStudents"></td><td></td><td></td><td></td>
+              <th scope="row">المتوسط</th><td></td>
+              <td x-text="reportTotals().avgDuration"></td><td x-text="reportTotals().avgStudents"></td><td></td><td></td>
             </tr>
           </tbody>
         </table>
@@ -209,7 +209,7 @@
 
       <!-- Honors of the month and teacher chosen above (S-60); added from a student's actions. -->
       <h3 id="honors-h" tabindex="-1" class="font-bold mt-6 mb-1">التكريمات</h3>
-      <p class="mb-2">تكريم الإدارة، يُضاف من «إجراءات» الطالب في قسم «الطلاب». ويُحسب في مصروف شهره، ويُنشر عدده بلا أسماء، ولا يُحذف في شهر ثابت.</p>
+      <p class="mb-2">يُضاف التكريم من «إجراءات» الطالب في قسم «الطلاب».</p>
       <div class="overflow-x-auto" x-show="honorRows().length">
         <table class="text-sm">
           <caption x-text="'تكريمات ' + (repTeacher === '*' ? 'كل المعلمين' : repTeacher) + ' في ' + repMonth + '، الأحدث أولاً: ' + honorRows().length"></caption>
@@ -251,15 +251,15 @@
       </div>
     </section>
 
-    <!-- 3. Students: active, absent and last year's in one list; each row's actions open under it -->
+    <!-- 3. Students: one short row each to read; details, messages and actions open under it -->
     <section id="students" aria-labelledby="students-h" class="mb-8">
       <h2 id="students-h" tabindex="-1" class="text-xl font-bold mb-2">
         <button type="button" class="text-start w-full" aria-controls="students-body"
                 :aria-expanded="String(isOpen('students'))" @click="toggleSection('students')"><span aria-hidden="true" x-text="isOpen('students') ? '− ' : '+ '"></span>الطلاب</button>
       </h2>
       <div id="students-body" x-show="isOpen('students')">
-      <p class="mb-2" x-text="'النشطون من حضر في آخر ' + activeDays() + ' يوماً، والغائبون من غاب أكثر منها؛ ولا يُحذف أحد من السجل ولا من الأرقام.' + (formerFor('*').length ? ' وطلاب سنة ' + (Number(year) - 1) + ' الذين لم يحضروا هذه السنة بعد يظهرون بلا خانات تعديل.' : '')"></p>
-      <div class="flex flex-wrap gap-4 mb-2">
+      <p class="mb-2" x-text="'النشطون من حضر في آخر ' + activeDays() + ' يوماً والغائبون من غاب أكثر منها، وتفاصيل كل طالب ورسائله تحت «إجراءات».'"></p>
+      <div class="flex flex-wrap gap-4 mb-2 items-end">
         <div>
           <label for="teacher-select" class="font-bold block">المعلم</label>
           <select id="teacher-select" x-model="teacher" class="border border-gray-700 p-1 min-h-[36px] bg-white">
@@ -281,21 +281,24 @@
           <input id="search" type="search" x-model="search" class="border border-gray-700 p-1 min-h-[36px]" aria-describedby="search-count">
           <p id="search-count" x-text="shownStudents().length + ' طالباً'"></p>
         </div>
-        <div>
-          <label for="msg-month" class="font-bold block">شهر رسالة وليّ الأمر</label>
-          <select id="msg-month" x-model="msgMonth" class="border border-gray-700 p-1 min-w-[120px] min-h-[36px] bg-white">
-            <template x-for="m in messageMonths()" :key="m"><option :value="m" :selected="m === msgMonth" x-text="m"></option></template>
-          </select>
-        </div>
+        <button type="button" id="edit-toggle" class="border border-gray-900 px-3 py-1.5 min-h-[38px] font-bold rounded"
+                :aria-pressed="String(editMode)" @click="toggleEditMode()" x-text="editMode ? 'أنهِ التعديل' : 'تعديل البيانات'"></button>
       </div>
+      <p x-show="editMode" class="mb-2 flex flex-wrap gap-2 items-center">
+        <span>غيّر الجنس وسنة الميلاد والهاتف في الصفوف، ثم احفظ.</span>
+        <button type="button" class="border-2 border-gray-900 px-3 py-1.5 min-h-[38px] font-bold rounded disabled:opacity-50"
+                :disabled="busy || !changedStudents().length" aria-describedby="students-changed"
+                @click="saveStudents()">احفظ الطلاب</button>
+        <span id="students-changed" x-text="changedStudents().length ? 'تغيّر ' + changedStudents().length + ' طالباً' : 'لا تغيير'"></span>
+      </p>
       <div class="overflow-x-auto" x-show="shownStudents().length">
         <table class="text-sm">
-          <caption x-text="viewLabel() + ' عند ' + teacherLabel() + '، الأحدث حضوراً أولاً'"></caption>
+          <caption x-text="viewLabel() + ' عند ' + teacherLabel() + (editMode ? '، للتعديل' : '') + '، الأحدث حضوراً أولاً'"></caption>
           <thead><tr>
-            <th scope="col" class="nowrap">الاسم</th><th scope="col" class="nowrap" x-show="teacher === '*'">المعلم</th><th scope="col" class="nowrap">الجنس</th><th scope="col" class="nowrap">الفئة</th>
-            <th scope="col" class="nowrap">أول ظهور</th><th scope="col" class="nowrap">آخر ظهور</th><th scope="col" class="nowrap">أيام الغياب</th><th scope="col" class="nowrap">الحضور</th>
-            <th scope="col" class="nowrap">آخر حفظ</th><th scope="col" class="nowrap">الإعادة</th><th scope="col" class="nowrap">الأوسمة</th><th scope="col" class="nowrap">التكريمات</th>
-            <th scope="col" class="nowrap">السن</th><th scope="col" class="nowrap">سنة الميلاد والهاتف</th><th scope="col" class="nowrap">إجراءات</th>
+            <th scope="col" class="nowrap">الاسم</th><th scope="col" class="nowrap" x-show="teacher === '*'">المعلم</th>
+            <th scope="col" class="nowrap">آخر ظهور</th><th scope="col" class="nowrap">أيام الغياب</th><th scope="col" class="nowrap">الحضور</th>
+            <th scope="col" class="nowrap" x-show="editMode">الجنس</th><th scope="col" class="nowrap" x-show="editMode">سنة الميلاد</th><th scope="col" class="nowrap" x-show="editMode">الهاتف</th>
+            <th scope="col" class="nowrap">إجراءات</th>
           </tr></thead>
           <!-- One tbody per student: its row, then its actions when open. -->
           <template x-for="(s, i) in shownStudents()" :key="k(s)">
@@ -303,39 +306,31 @@
               <tr>
                 <th scope="row" class="nowrap"><span x-text="s.name"></span><span x-show="s.isNew"> (جديد)</span><span x-show="!s.former && !isActive(s)"> (غائب)</span><span x-show="s.former" x-text="' (من سنة ' + (Number(year) - 1) + ')'"></span></th>
                 <td x-show="teacher === '*'" class="nowrap" x-text="s.teacher"></td>
-                <td class="nowrap">
-                  <template x-if="!s.former"><div>
-                    <label :for="'g-' + i" class="sr-only">الجنس</label>
+                <td class="nowrap" x-text="s.lastSeen"></td><td class="nowrap" x-text="daysAway(s)"></td><td class="nowrap" x-text="s.attendance"></td>
+                <td x-show="editMode" class="nowrap">
+                  <template x-if="editMode && !s.former"><div>
+                    <label :for="'g-' + i" class="sr-only" x-text="'جنس ' + s.name"></label>
                     <select :id="'g-' + i" x-model="genders[k(s)]" class="border border-gray-700 p-1 min-h-[36px] bg-white text-sm">
                       <option value="ذكر">ذكر</option><option value="أنثى">أنثى</option>
                     </select>
                   </div></template>
                   <span x-show="s.former" x-text="s.gender"></span>
                 </td>
-                <td class="nowrap" x-text="s.category"></td><td class="nowrap" x-text="s.firstSeen"></td><td class="nowrap" x-text="s.lastSeen"></td>
-                <td class="nowrap" x-text="daysAway(s)"></td>
-                <td class="nowrap" x-text="s.attendance"></td><td class="nowrap" x-text="s.lastHifz"></td>
-                <td class="nowrap" x-text="s.repeats"></td><td class="nowrap" x-text="s.medals"></td><td class="nowrap" x-text="s.honors"></td>
-                <td class="nowrap" x-text="s.age === '' ? '' : s.age + ' سنة'"></td>
-                <td class="nowrap">
-                  <div class="flex flex-col gap-1.5 py-1">
-                    <template x-if="!s.former"><div class="flex items-center gap-1.5">
-                      <label :for="'by-' + i" class="sr-only">سنة الميلاد</label>
-                      <input :id="'by-' + i" type="text" inputmode="numeric" maxlength="4" placeholder="سنة الميلاد"
-                             x-model="details[k(s)].birthYear" class="border border-gray-700 p-1 w-24 min-h-[36px] text-sm">
-                      <label :for="'ph-' + i" class="sr-only">الهاتف</label>
-                      <input :id="'ph-' + i" type="tel" dir="ltr" placeholder="+20…"
-                             x-model="details[k(s)].phone" class="border border-gray-700 p-1 w-36 min-h-[36px] text-sm">
-                    </div></template>
-                    <span x-show="s.former" dir="ltr" x-text="[s.birthYear, s.phone].filter(Boolean).join('  ')"></span>
-                    <div class="flex items-center gap-2 flex-wrap" x-show="s.phone">
-                      <a :href="waLink(s)" target="_blank" rel="noopener" class="underline text-xs"
-                         :aria-label="'راسل ' + s.name + ' على WhatsApp' + (absentMessage(s) ? ' برسالة غياب جاهزة' : '') + ' (يفتح في نافذة جديدة)'"
-                         x-text="absentMessage(s) ? 'WhatsApp برسالة غياب' : 'WhatsApp'"></a>
-                      <a x-show="!s.former" :href="monthLink(s)" target="_blank" rel="noopener" class="underline text-xs"
-                         :aria-label="'أرسل لوليّ أمر ' + s.name + ' خلاصة شهر ' + msgMonth + ' على WhatsApp (يفتح في نافذة جديدة)'">رسالة الشهر</a>
-                    </div>
-                  </div>
+                <td x-show="editMode" class="nowrap">
+                  <template x-if="editMode && !s.former"><div>
+                    <label :for="'by-' + i" class="sr-only" x-text="'سنة ميلاد ' + s.name"></label>
+                    <input :id="'by-' + i" type="text" inputmode="numeric" maxlength="4" placeholder="سنة الميلاد"
+                           x-model="details[k(s)].birthYear" class="border border-gray-700 p-1 w-24 min-h-[36px] text-sm">
+                  </div></template>
+                  <span x-show="s.former" x-text="s.birthYear"></span>
+                </td>
+                <td x-show="editMode" class="nowrap">
+                  <template x-if="editMode && !s.former"><div>
+                    <label :for="'ph-' + i" class="sr-only" x-text="'هاتف ' + s.name"></label>
+                    <input :id="'ph-' + i" type="tel" dir="ltr" placeholder="+20…"
+                           x-model="details[k(s)].phone" class="border border-gray-700 p-1 w-36 min-h-[36px] text-sm">
+                  </div></template>
+                  <span x-show="s.former" dir="ltr" x-text="s.phone"></span>
                 </td>
                 <td class="nowrap">
                   <button type="button" :id="'act-btn-' + i" class="border border-gray-900 px-2.5 py-1 min-h-[36px] text-xs font-semibold rounded hover:bg-gray-100"
@@ -344,15 +339,44 @@
                 </td>
               </tr>
               <tr x-show="openRow === k(s)">
-                <td colspan="15" class="bg-gray-50">
+                <td :colspan="studentColumns()" class="bg-gray-50">
                   <div :id="'act-' + i" class="flex flex-col gap-4 py-2" x-show="openRow === k(s)">
                     <h3 :id="'act-h-' + i" tabindex="-1" class="font-bold" x-text="'إجراءات ' + s.name + ' عند ' + s.teacher"></h3>
 
+                    <dl class="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-1 max-w-3xl">
+                      <div><dt class="font-bold">الفئة</dt><dd x-text="s.category || '-'"></dd></div>
+                      <div><dt class="font-bold">الجنس</dt><dd x-text="s.gender || '-'"></dd></div>
+                      <div><dt class="font-bold">السن</dt><dd x-text="s.age === '' || s.age === undefined ? '-' : s.age + ' سنة'"></dd></div>
+                      <div><dt class="font-bold">سنة الميلاد</dt><dd x-text="s.birthYear || '-'"></dd></div>
+                      <div><dt class="font-bold">الهاتف</dt><dd dir="ltr" class="text-start" x-text="s.phone || '-'"></dd></div>
+                      <div><dt class="font-bold">أول ظهور</dt><dd x-text="s.firstSeen || '-'"></dd></div>
+                      <div><dt class="font-bold">آخر حفظ</dt><dd x-text="s.lastHifz || '-'"></dd></div>
+                      <div><dt class="font-bold">الإعادة</dt><dd x-text="s.repeats === undefined ? '-' : s.repeats"></dd></div>
+                      <div><dt class="font-bold">الأوسمة</dt><dd x-text="s.medals === undefined ? '-' : s.medals"></dd></div>
+                      <div><dt class="font-bold">التكريمات</dt><dd x-text="s.honors"></dd></div>
+                    </dl>
+
+                    <div x-show="s.phone" class="flex flex-wrap gap-4 items-end">
+                      <a :href="waLink(s)" target="_blank" rel="noopener" class="underline"
+                         :aria-label="'راسل ' + s.name + ' على WhatsApp' + (absentMessage(s) ? ' برسالة غياب جاهزة' : '') + ' (يفتح في نافذة جديدة)'"
+                         x-text="absentMessage(s) ? 'WhatsApp برسالة غياب' : 'WhatsApp'"></a>
+                      <template x-if="!s.former"><div class="flex flex-wrap gap-2 items-end">
+                        <div>
+                          <label :for="'msg-month-' + i" class="font-bold block">شهر رسالة وليّ الأمر</label>
+                          <select :id="'msg-month-' + i" x-model="msgMonth" class="border border-gray-700 p-1 min-w-[120px] min-h-[36px] bg-white">
+                            <template x-for="m in messageMonths()" :key="m"><option :value="m" :selected="m === msgMonth" x-text="m"></option></template>
+                          </select>
+                        </div>
+                        <a :href="monthLink(s)" target="_blank" rel="noopener" class="underline"
+                           :aria-label="'أرسل لوليّ أمر ' + s.name + ' خلاصة شهر ' + msgMonth + ' على WhatsApp (يفتح في نافذة جديدة)'">رسالة الشهر</a>
+                      </div></template>
+                    </div>
+                    <p x-show="!s.phone">لا هاتف محفوظ؛ يُكتب من «تعديل البيانات».</p>
+
                     <div>
                       <h4 class="font-bold mb-1">حلقاته</h4>
-                      <p class="mb-1">آخر عشر حلقات، الأحدث أولاً، ولكل حلقة رابط ملف تقريرها؛ ابحث فيه عن اسمه. والتقارير قبل 2026-10-27 بلا رابط.</p>
                       <table class="text-sm" x-show="historyRows(s).length">
-                        <caption x-text="'آخر حلقات ' + s.name"></caption>
+                        <caption x-text="'آخر حلقات ' + s.name + '، الأحدث أولاً'"></caption>
                         <thead><tr><th scope="col" class="nowrap">التاريخ</th><th scope="col" class="nowrap">الفترة</th><th scope="col" class="nowrap">رقم الحلقة</th><th scope="col" class="nowrap">التقرير</th></tr></thead>
                         <tbody>
                           <template x-for="h in historyRows(s)" :key="h.slot">
@@ -374,12 +398,11 @@
 
                     <form x-show="!s.former" @submit.prevent="addHonor(s)" class="flex flex-wrap gap-4 items-end">
                       <h4 class="font-bold w-full">كرّمه</h4>
-                      <p class="w-full">تكريم الإدارة، غير وسام المعلم في تقريره؛ يُحسب في مصروف شهره، ويُنشر عدده بلا أسماء. ولا يُضاف في شهر ثابت.</p>
                       <div>
                         <label :for="'hon-date-' + i" class="font-bold block">تاريخ التكريم</label>
                         <input :id="'hon-date-' + i" type="text" inputmode="numeric" dir="ltr" x-model="honDate" required
                                class="border border-gray-700 p-1 w-32" :aria-describedby="'hon-date-hint-' + i">
-                        <p :id="'hon-date-hint-' + i">بصيغة سنة-شهر-يوم، مثل 2026-10-25</p>
+                        <p :id="'hon-date-hint-' + i">مثل 2026-10-25</p>
                       </div>
                       <div>
                         <label :for="'hon-reason-' + i" class="font-bold block">السبب (اختياري)</label>
@@ -390,7 +413,6 @@
 
                     <form x-show="!s.former" @submit.prevent="reviewAlias(s)" class="flex flex-col gap-3 max-w-xl">
                       <h4 class="font-bold">صحّح الاسم</h4>
-                      <p>إن كان «<span x-text="s.name"></span>» اسماً محرّفاً لطالب آخر عند المعلم نفسه فاختر الصحيح، أو اكتبه إن لم يكن في القائمة. والدمج فوري لا يُنقض.</p>
                       <fieldset>
                         <legend class="font-bold">الاسم الصحيح</legend>
                         <label class="me-4"><input type="radio" value="list" x-model="aliasMode"> من طلاب المعلم</label>
@@ -431,13 +453,9 @@
       </div>
       <p x-show="!shownStudents().length">لا طلاب في هذا العرض.</p>
       <p class="mt-2 flex flex-wrap gap-2 items-center">
-        <button type="button" class="border border-gray-900 px-3 py-1.5 min-h-[38px] font-bold rounded disabled:opacity-50"
-                :disabled="busy || !changedStudents().length" aria-describedby="students-changed"
-                @click="saveStudents()">احفظ الطلاب</button>
-        <span id="students-changed" x-text="changedStudents().length ? 'تغيّر ' + changedStudents().length + ' طالباً' : 'لا تغيير'"></span>
         <button type="button" class="border border-gray-900 px-3 py-1" :disabled="!shownStudents().length"
                 aria-describedby="students-download-hint" @click="downloadStudents(shownStudents(), viewLabel(), teacherLabel())">نزّل القائمة</button>
-        <span id="students-download-hint">ملف CSV يفتحه Excel، فيه ما يعرضه الجدول بعد البحث والتصفية.</span>
+        <span id="students-download-hint">ملف CSV لـ Excel بكل الأعمدة.</span>
       </p>
 
       <div class="overflow-x-auto mt-6">
@@ -472,7 +490,7 @@
                 :aria-expanded="String(isOpen('rates'))" @click="toggleSection('rates')"><span aria-hidden="true" x-text="isOpen('rates') ? '− ' : '+ '"></span>الرواتب والمصروفات</button>
       </h2>
       <div id="rates-body" x-show="isOpen('rates')">
-      <p class="mb-2">مستحقات المعلمين بالجنيه: الساعات من شيت المعلم بلا المكرر، وكل شهر لم يثبت يُحسب بالسعر الحالي. والأسعار والمصروفات تحت زر «عدّل الأسعار».</p>
+      <p class="mb-2">مستحقات المعلمين بالجنيه من ساعات شيتاتهم، والأسعار والمصروفات تحت «عدّل الأسعار».</p>
       <p x-show="data.unpriced.length" class="font-bold mb-2"
          x-text="'لا سعر لـ: ' + data.unpriced.join('، ') + '. فمصروف أشهرهم فارغ في الملف العام حتى يُكتب.'"></p>
 
@@ -643,7 +661,7 @@
     return {
       data: null, status: '', error: '', busy: false, year: '', test: false,
       token: '', who: '', loginName: '', loginPassword: '',
-      month: '', teacher: '', repTeacher: '*', repMonth: '', search: '', view: 'active', openRow: '', genders: {},
+      month: '', teacher: '', repTeacher: '*', repMonth: '', search: '', view: 'active', openRow: '', editMode: false, genders: {},
       details: {},
       aliasMode: 'list', aliasToList: '', aliasToTyped: '', review: null, pendingDelete: -1,
       editing: null, editHours: '', editMinutes: '', editStudents: '', pendingReport: -1,
@@ -955,6 +973,14 @@
           .filter(s => this.inView(s) && (!q || this.nameKey(s.name).indexOf(q) !== -1))
           .sort((a, b) => (a.lastSeen < b.lastSeen ? 1 : a.lastSeen > b.lastSeen ? -1 : 0));
       },
+      // The table turns into fields for gender, birth year and phone, and back after saving.
+      toggleEditMode() {
+        this.editMode = !this.editMode;
+        this.status = this.editMode ? 'الجدول للتعديل الآن.' : 'الجدول للقراءة.';
+      },
+      studentColumns() {
+        return 5 + (this.teacher === '*' ? 1 : 0) + (this.editMode ? 3 : 0);
+      },
       // A row's actions open under it; focus goes to their heading, and back to the button on closing.
       toggleRow(s, i) {
         const open = this.openRow !== this.k(s);
@@ -1110,7 +1136,11 @@
           Object.assign(args, { ['t' + i]: s.teacher, ['k' + i]: s.key, ['g' + i]: this.genders[this.k(s)],
             ['b' + i]: d.birthYear, ['p' + i]: d.phone });
         });
-        this.call('saveStudents', args, 'حُفظت بيانات ' + list.length + ' طالباً.');
+        this.call('saveStudents', args, () => {
+          this.editMode = false;
+          this.focusSoon('edit-toggle');
+          return 'حُفظت بيانات ' + list.length + ' طالباً.';
+        });
       },
 
       aliasTo() {
