@@ -77,7 +77,7 @@
     <div x-show="months.length" x-cloak class="max-w-5xl mx-auto px-6">
 
       <section aria-labelledby="year-h" class="pt-12" x-show="totals">
-        <h2 id="year-h" class="font-amiri text-[32px] font-bold mb-3" x-text="'السنة ' + year + ' حتى الآن'"></h2>
+        <h2 id="year-h" class="font-amiri text-[32px] font-bold mb-3" x-text="'من ' + firstMonthName() + ' حتى الآن'"></h2>
         <p class="text-xl max-w-[62ch]" x-text="yearSentence()"></p>
       </section>
 
@@ -302,11 +302,16 @@
         if (kafala) clauses.push(['كانت', 'كفالة الطالب الواحد في الشهر ' + this.show(m, MONTH_COLUMNS.find(c => c.key === 'كفالة الطالب في الشهر'))]);
         return clauses.map(([verb, rest], i) => (i ? 'و' + verb : verb) + ' ' + rest).join('، ') + (clauses.length ? '.' : '');
       },
+      // The totals start with the first month the system counted (September 2026), not January,
+      // so the sentence names that month rather than "the start of the year" (Kamal, 2026-11-01).
+      firstMonthName() {
+        return this.months.length ? this.monthName(this.months[0].month) : this.year;
+      },
       yearSentence() {
         if (!this.totals) return '';
         const total = key => this.show(this.totals, TOTAL_COLUMNS.find(c => c.key === key));
         const hours = this.number(this.totals['ساعات التدريس']);
-        return 'منذ أول السنة درس في الأكاديمية ' + total('عدد الطلاب الكلي') + ' من الطلاب، في '
+        return 'منذ ' + this.firstMonthName() + ' درس في الأكاديمية ' + total('عدد الطلاب الكلي') + ' من الطلاب، في '
           + total('عدد الحلقات') + ' حلقة، وبلغت ساعات التدريس '
           + (hours === null ? total('ساعات التدريس') : Math.round(hours).toLocaleString('en-US') + ' ساعة') + '.';
       },
