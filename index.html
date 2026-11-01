@@ -592,11 +592,11 @@
                  aria-describedby="pay-hint" class="border border-gray-700 p-1">
         </div>
         <button type="submit" class="border-2 border-gray-900 px-3 py-1 font-bold" :disabled="busy">افتح الرواتب</button>
-        <p id="pay-hint" class="w-full">تبقى الرواتب مفتوحة نصف ساعة.</p>
+        <p id="pay-hint" class="w-full">تبقى الرواتب مفتوحة حتى تخرج أو تقفلها.</p>
       </form>
 
       <div x-show="data.payOpen">
-      <p class="mb-2"><span x-text="data.payUntil ? 'الرواتب مفتوحة حتى ' + data.payUntil + '.' : 'الرواتب مفتوحة.'"></span>
+      <p class="mb-2"><span>الرواتب مفتوحة.</span>
         <button type="button" class="border border-gray-900 px-3 py-1 ms-1 min-h-[36px] text-sm font-semibold rounded hover:bg-gray-100" @click="lockPay()">أقفل الرواتب</button></p>
       <div>
         <label for="pay-month" class="font-bold block">شهر المستحقات</label>
@@ -721,6 +721,7 @@
 <script>
   // The /exec address of the script's versioned web app deployment (D4).
   const API_URL = 'https://script.google.com/macros/s/AKfycbwxv2ueJUqhNRX-rBSBGLqzm9ReKH59pWftoYi-cfRF7CdU8MK60XJZeyuKI2qhqm7I/exec';
+  // In localStorage, so closing the tab keeps the admin in until the six-hour session ends (Kamal, 2026-11-01).
   const SESSION_KEY = 'sana_dashboard_session';
   const ABSENT_MESSAGE_DAYS = 14;
   // Sections the admin opened, kept until the tab closes (U-06).
@@ -767,7 +768,7 @@
         this.year = params.get('year') || String(new Date().getFullYear());
         this.test = params.get('test') === '1';
         let saved = null;
-        try { saved = JSON.parse(sessionStorage.getItem(SESSION_KEY) || 'null'); } catch (e) { saved = null; }
+        try { saved = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch (e) { saved = null; }
         if (saved && saved.token) {
           this.token = saved.token;
           this.who = saved.who || '';
@@ -824,7 +825,7 @@
       forget() {
         this.token = '';
         this.data = null;
-        try { sessionStorage.removeItem(SESSION_KEY); } catch (e) { /* private window */ }
+        try { localStorage.removeItem(SESSION_KEY); } catch (e) { /* private window */ }
       },
 
       login() {
@@ -833,7 +834,7 @@
           this.who = reply.name;
           this.loginPassword = '';
           try {
-            sessionStorage.setItem(SESSION_KEY, JSON.stringify({ token: reply.token, who: reply.name }));
+            localStorage.setItem(SESSION_KEY, JSON.stringify({ token: reply.token, who: reply.name }));
           } catch (e) { /* private window: the session lasts until reload */ }
           this.status = 'جارٍ تحميل البيانات…';
           this.call('data', {}, () => this.landed('دخلتَ باسم ' + reply.name + '، وحُمّلت البيانات.'));
@@ -1133,10 +1134,10 @@
         return (this.data && this.data.pay) || [];
       },
       unlockPay() {
-        this.call('unlockPay', { password: this.payPassword }, reply => {
+        this.call('unlockPay', { password: this.payPassword }, () => {
           this.payPassword = '';
           this.focusSoon('rates-h');
-          return 'فُتحت الرواتب حتى ' + reply.data.payUntil + '.';
+          return 'فُتحت الرواتب.';
         });
       },
       lockPay() {

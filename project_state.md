@@ -7,7 +7,7 @@
 
 - `index.html`: Alpine.js 3.14.8 وTailwind 3.4.17 من CDN، RTL، وقراراتها S-38…S-46 في `PLAN_STUDENTS_SHEET.md` بمستودع السكربت. ولا روابط تنقل في أعلاها (2026-10-27).
 - `call(action, args, done)` يرسل `{action, token, test, year, args}` إلى `API_URL` بـ `fetch` ونوع `text/plain`، والرد `{ok, data, outcome}` أو `{ok: false, error, auth}`؛ و`auth` يمحو الجلسة ويعيد قسم الدخول.
-- الجلسة `{token, who}` في `sessionStorage` (`sana_dashboard_session`)، فتبقى بعد إعادة التحميل وتذهب بإغلاق التبويب.
+- الجلسة `{token, who}` في `localStorage` (`sana_dashboard_session`)، فتبقى بعد إغلاق التبويب والمتصفح حتى تنتهي جلسة الست ساعات أو يخرج (كمال 2026-11-01).
 - كل طالب يحمل `teacher`، والمفتاح `k(s)` = المعلم|المفتاح، لأن «كل المعلمين» يجمع طلاباً بالاسم نفسه عند معلمَين.
 - معرّفات حقول الصفوف بترتيب الصف (`g-0`، `by-0`، `ph-0`)، لا بالمفتاح.
 - قسم «تقارير الحلقات» (`#reports`): `repTeacher` ('*' لكل المعلمين) و`repMonth`؛ `reportRows()` يرتب الأحدث أولاً: بالتاريخ، ثم الصف الأخير من الشيت، ثم المعلم؛ و`reportTotals()` من الصفوف التي لا حالة لها؛ و`refreshReports()` يرسل `refreshReports`. ونوع الحلقة رابط إلى `r.link` إن وُجد (يردّه السكربت `https` وحده).
