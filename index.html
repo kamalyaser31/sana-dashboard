@@ -29,7 +29,19 @@
     <p x-show="token" x-cloak>دخلتَ باسم <strong x-text="who"></strong>.
       <button type="button" class="border border-gray-900 px-3 py-1 ms-2 min-h-[36px] inline-flex items-center text-sm font-semibold rounded hover:bg-gray-100" @click="logout()">اخرج</button></p>
     <p x-show="test" x-cloak class="font-bold border-2 border-gray-900 p-2">وضع الاختبار: هذه بيانات مجلد الاختبار، لا بيانات الأكاديمية.</p>
-    <p x-show="data" x-cloak>سنة <span x-text="data && data.year"></span>، وتاريخ اليوم <span x-text="data && data.today"></span>.</p>
+    <div x-show="data" x-cloak class="flex flex-wrap gap-3 items-center mt-1">
+      <label for="year-select" class="font-bold">السنة</label>
+      <select id="year-select" :value="year" @change="switchYear($event.target.value)" :disabled="busy"
+              class="border border-gray-700 p-1 min-h-[36px] bg-white">
+        <template x-for="y in (data ? data.years : [])" :key="y"><option :value="y" :selected="y === year" x-text="y"></option></template>
+      </select>
+      <span>وتاريخ اليوم <span x-text="data && data.today"></span>.</span>
+    </div>
+    <p x-show="data && data.previousOpen" x-cloak class="mt-2 border-2 border-gray-900 p-2">
+      <span x-text="'أرقام ديسمبر ' + (Number(year) - 1) + ' تُعدَّل حتى الخامس من يناير، وتقاريرها وتكريماتها ومصروفها ورواتبها في سنة ' + (Number(year) - 1) + '.'"></span>
+      <button type="button" class="border border-gray-900 px-3 py-1 ms-2 min-h-[36px] text-sm font-semibold rounded hover:bg-gray-100"
+              :disabled="busy" @click="switchYear(String(Number(year) - 1))" x-text="'انتقل إلى سنة ' + (Number(year) - 1)"></button>
+    </p>
   </header>
 
   <p id="status" role="status" aria-live="polite" class="mb-2 font-bold" x-text="status"></p>
@@ -209,7 +221,7 @@
           <label for="teacher-select" class="font-bold block">المعلم</label>
           <select id="teacher-select" x-model="teacher" class="border border-gray-700 p-1 min-h-[36px] bg-white">
             <option value="*" :selected="teacher === '*'">كل المعلمين</option>
-            <template x-for="t in data.teachers" :key="t.name"><option :value="t.name" :selected="t.name === teacher" x-text="t.name + ' (' + t.students.filter(s => isActive(s)).length + ')'"></option></template>
+            <template x-for="t in data.teachers" :key="t.name"><option :value="t.name" :selected="t.name === teacher" x-text="t.name + ' (' + activeCount(t) + ')'"></option></template>
           </select>
         </div>
         <div>
@@ -231,7 +243,7 @@
           </select>
         </div>
       </div>
-      <p class="mb-2" x-text="'هنا من حضر في آخر ' + activeDays() + ' يوماً؛ ومن غاب أكثر منها ففي قسم «الطلاب الغائبون».'"></p>
+      <p class="mb-2" x-text="'هنا من حضر في آخر ' + activeDays() + ' يوماً؛ ومن غاب أكثر منها ففي قسم «الطلاب الغائبون».' + (formerFor('*').length ? ' ومعهم طلاب سنة ' + (Number(year) - 1) + ' الذين لم يحضروا هذه السنة بعد، بلا خانات تعديل.' : '')"></p>
       <div class="overflow-x-auto">
         <table class="text-sm">
           <caption x-text="(absentDays === '0' ? 'الطلاب النشطون عند ' : 'الغائبون أكثر من ' + absentDays + ' يوماً من النشطين عند ') + teacherLabel() + '، الأحدث حضوراً أولاً'"></caption>
@@ -244,13 +256,16 @@
           <tbody>
             <template x-for="(s, i) in filteredStudents()" :key="k(s)">
               <tr>
-                <th scope="row" class="nowrap"><span x-text="s.name"></span><span x-show="s.isNew"> (جديد)</span></th>
+                <th scope="row" class="nowrap"><span x-text="s.name"></span><span x-show="s.isNew"> (جديد)</span><span x-show="s.former" x-text="' (من سنة ' + (Number(year) - 1) + ')'"></span></th>
                 <td x-show="teacher === '*'" class="nowrap" x-text="s.teacher"></td>
                 <td class="nowrap">
-                  <label :for="'g-' + i" class="sr-only">الجنس</label>
-                  <select :id="'g-' + i" x-model="genders[k(s)]" class="border border-gray-700 p-1 min-h-[36px] bg-white text-sm">
-                    <option value="ذكر">ذكر</option><option value="أنثى">أنثى</option>
-                  </select>
+                  <template x-if="!s.former"><div>
+                    <label :for="'g-' + i" class="sr-only">الجنس</label>
+                    <select :id="'g-' + i" x-model="genders[k(s)]" class="border border-gray-700 p-1 min-h-[36px] bg-white text-sm">
+                      <option value="ذكر">ذكر</option><option value="أنثى">أنثى</option>
+                    </select>
+                  </div></template>
+                  <span x-show="s.former" x-text="s.gender"></span>
                 </td>
                 <td class="nowrap" x-text="s.category"></td><td class="nowrap" x-text="s.firstSeen"></td><td class="nowrap" x-text="s.lastSeen"></td>
                 <td class="nowrap" x-text="daysAway(s)"></td>
@@ -259,19 +274,20 @@
                 <td class="nowrap" x-text="s.age === '' ? '' : s.age + ' سنة'"></td>
                 <td class="nowrap">
                   <div class="flex flex-col gap-1.5 py-1">
-                    <div class="flex items-center gap-1.5">
+                    <template x-if="!s.former"><div class="flex items-center gap-1.5">
                       <label :for="'by-' + i" class="sr-only">سنة الميلاد</label>
                       <input :id="'by-' + i" type="text" inputmode="numeric" maxlength="4" placeholder="سنة الميلاد"
                              x-model="details[k(s)].birthYear" class="border border-gray-700 p-1 w-24 min-h-[36px] text-sm">
                       <label :for="'ph-' + i" class="sr-only">الهاتف</label>
                       <input :id="'ph-' + i" type="tel" dir="ltr" placeholder="+20…"
                              x-model="details[k(s)].phone" class="border border-gray-700 p-1 w-36 min-h-[36px] text-sm">
-                    </div>
+                    </div></template>
+                    <span x-show="s.former" dir="ltr" x-text="[s.birthYear, s.phone].filter(Boolean).join('  ')"></span>
                     <div class="flex items-center gap-2 flex-wrap" x-show="s.phone">
                       <a :href="waLink(s)" target="_blank" rel="noopener" class="underline text-xs"
                          :aria-label="'راسل ' + s.name + ' على WhatsApp' + (absentMessage(s) ? ' برسالة غياب جاهزة' : '') + ' (يفتح في نافذة جديدة)'"
                          x-text="absentMessage(s) ? 'WhatsApp برسالة غياب' : 'WhatsApp'"></a>
-                      <a :href="monthLink(s)" target="_blank" rel="noopener" class="underline text-xs"
+                      <a x-show="!s.former" :href="monthLink(s)" target="_blank" rel="noopener" class="underline text-xs"
                          :aria-label="'أرسل لوليّ أمر ' + s.name + ' خلاصة شهر ' + msgMonth + ' على WhatsApp (يفتح في نافذة جديدة)'">رسالة الشهر</a>
                     </div>
                   </div>
@@ -301,12 +317,14 @@
       </h2>
       <div id="absent-body" x-show="isOpen('absent')">
       <p class="mb-2" x-text="'من غاب أكثر من ' + activeDays() + ' يوماً. لا يُحذف من السجل ولا من الأرقام، ويعود إلى قسم «الطلاب» من أول تقرير يرد فيه.'"></p>
+      <p class="mb-2" x-show="data.former && data.former.length"
+         x-text="'ومعهم طلاب سنة ' + (Number(year) - 1) + ' الذين لم يحضروا هذه السنة بعد، بلا خانات تعديل؛ تُعدَّل بياناتهم من سنة ' + (Number(year) - 1) + '.'"></p>
       <div class="flex flex-wrap gap-4 mb-2">
         <div>
           <label for="abs-teacher" class="font-bold block">المعلم</label>
           <select id="abs-teacher" x-model="absTeacher" class="border border-gray-700 p-1 min-h-[36px] bg-white">
             <option value="*" :selected="absTeacher === '*'">كل المعلمين</option>
-            <template x-for="t in data.teachers" :key="t.name"><option :value="t.name" :selected="t.name === absTeacher" x-text="t.name + ' (' + t.students.filter(s => !isActive(s)).length + ')'"></option></template>
+            <template x-for="t in data.teachers" :key="t.name"><option :value="t.name" :selected="t.name === absTeacher" x-text="t.name + ' (' + absentCount(t) + ')'"></option></template>
           </select>
         </div>
         <div>
@@ -326,27 +344,31 @@
           <tbody>
             <template x-for="(s, i) in absentStudents()" :key="k(s)">
               <tr>
-                <th scope="row" class="nowrap" x-text="s.name"></th>
+                <th scope="row" class="nowrap" x-text="s.name + (s.former ? ' (من سنة ' + (Number(year) - 1) + ')' : '')"></th>
                 <td x-show="absTeacher === '*'" class="nowrap" x-text="s.teacher"></td>
                 <td class="nowrap">
-                  <label :for="'ag-' + i" class="sr-only">الجنس</label>
-                  <select :id="'ag-' + i" x-model="genders[k(s)]" class="border border-gray-700 p-1 min-h-[36px] bg-white text-sm">
-                    <option value="ذكر">ذكر</option><option value="أنثى">أنثى</option>
-                  </select>
+                  <template x-if="!s.former"><div>
+                    <label :for="'ag-' + i" class="sr-only">الجنس</label>
+                    <select :id="'ag-' + i" x-model="genders[k(s)]" class="border border-gray-700 p-1 min-h-[36px] bg-white text-sm">
+                      <option value="ذكر">ذكر</option><option value="أنثى">أنثى</option>
+                    </select>
+                  </div></template>
+                  <span x-show="s.former" x-text="s.gender"></span>
                 </td>
                 <td class="nowrap" x-text="s.category"></td><td class="nowrap" x-text="s.firstSeen"></td><td class="nowrap" x-text="s.lastSeen"></td>
                 <td class="nowrap" x-text="daysAway(s)"></td><td class="nowrap" x-text="s.attendance"></td><td class="nowrap" x-text="s.lastHifz"></td><td class="nowrap" x-text="s.honors"></td>
                 <td class="nowrap" x-text="s.age === '' ? '' : s.age + ' سنة'"></td>
                 <td class="nowrap">
                   <div class="flex flex-col gap-1.5 py-1">
-                    <div class="flex items-center gap-1.5">
+                    <template x-if="!s.former"><div class="flex items-center gap-1.5">
                       <label :for="'aby-' + i" class="sr-only">سنة الميلاد</label>
                       <input :id="'aby-' + i" type="text" inputmode="numeric" maxlength="4" placeholder="سنة الميلاد"
                              x-model="details[k(s)].birthYear" class="border border-gray-700 p-1 w-24 min-h-[36px] text-sm">
                       <label :for="'aph-' + i" class="sr-only">الهاتف</label>
                       <input :id="'aph-' + i" type="tel" dir="ltr" placeholder="+20…"
                              x-model="details[k(s)].phone" class="border border-gray-700 p-1 w-36 min-h-[36px] text-sm">
-                    </div>
+                    </div></template>
+                    <span x-show="s.former" dir="ltr" x-text="[s.birthYear, s.phone].filter(Boolean).join('  ')"></span>
                     <div class="flex items-center gap-2 flex-wrap" x-show="s.phone">
                       <a :href="waLink(s)" target="_blank" rel="noopener" class="underline text-xs"
                          :aria-label="'راسل ' + s.name + ' على WhatsApp برسالة غياب جاهزة (يفتح في نافذة جديدة)'">WhatsApp برسالة غياب</a>
@@ -643,6 +665,7 @@
           </tbody>
         </table>
       </div>
+      <p class="mt-1 text-sm">للمعلم سعر واحد يسري على كل شهر لم يثبت بعد، ومنه الشهر الماضي حتى الخامس من هذا الشهر، ولو كان ديسمبر من السنة الماضية.</p>
       <div class="overflow-x-auto mt-4">
         <table class="text-sm">
           <caption>المصروفات الثابتة كل شهر (جنيه)</caption>
@@ -853,8 +876,19 @@
         this.$nextTick(() => this.focusEl('login-name'));
       },
 
+      // Another year's data; month choices reset, as they belong to the year.
+      switchYear(y) {
+        if (!y || y === this.year) return;
+        this.year = y;
+        this.expMonth = '';
+        this.honDate = '';
+        this.status = 'جارٍ تحميل سنة ' + y + '…';
+        this.call('data', {}, () => 'حُمّلت سنة ' + y + '.');
+      },
       load(data) {
         this.data = data;
+        // The script shows last year while the new one has no registry yet; later writes go to that year.
+        this.year = data.year;
         this.genders = {};
         this.details = {};
         data.teachers.forEach(t => t.students.forEach(s => {
@@ -870,7 +904,7 @@
         if (months.indexOf(this.month) === -1) this.month = months.length ? months[months.length - 1] : '';
         if (!this.expMonth) {
           const now = new Date();
-          const current = String(now.getFullYear()) === this.year ? now.getMonth() + 1 : 1;
+          const current = String(now.getFullYear()) === this.year ? now.getMonth() + 1 : 12;
           this.expMonth = this.year + '-' + String(current).padStart(2, '0');
         }
         this.expAmount = this.expenseOf(this.expMonth);
@@ -885,8 +919,8 @@
         this.editing = null;
         this.pendingReport = -1;
         if (!data.teachers.some(t => t.name === this.honTeacher)) this.honTeacher = data.teachers.length ? data.teachers[0].name : '';
-        if (!this.honDate) this.honDate = data.today;
-        if (this.honorMonths().indexOf(this.honMonth) === -1) this.honMonth = data.today.slice(0, 7);
+        if (!this.honDate) this.honDate = this.dayInYear();
+        if (this.honorMonths().indexOf(this.honMonth) === -1) this.honMonth = this.dayInYear().slice(0, 7);
         this.pendingHonor = -1;
         this.honorAmountInput = String(data.honorAmount || '');
         if (this.absTeacher !== '*' && !data.teachers.some(t => t.name === this.absTeacher)) this.absTeacher = '*';
@@ -1031,19 +1065,33 @@
         return days === '' || days <= this.activeDays();
       },
       // The active students only; the absent ones have their own section.
+      // Last year's students not seen this year, for one teacher or '*', marked read-only.
+      formerFor(teacher) {
+        if (!this.data) return [];
+        return (this.data.former || []).filter(s => teacher === '*' || s.teacher === teacher)
+          .map(s => Object.assign({ former: true }, s));
+      },
+      activeCount(teacher) {
+        return teacher.students.concat(this.formerFor(teacher.name)).filter(s => this.isActive(s)).length;
+      },
       filteredStudents() {
         const q = this.nameKey(this.search);
         const min = Number(this.absentDays);
-        return this.currentStudents().filter(s => this.isActive(s)
+        return this.currentStudents().concat(this.formerFor(this.teacher)).filter(s => this.isActive(s)
           && (!q || this.nameKey(s.name).indexOf(q) !== -1) && (!min || this.daysAway(s) > min));
       },
+      // This year's absent students, then last year's not seen this year (read-only: their
+      // details live in last year's registry).
       absentStudents() {
         if (!this.data) return [];
         const q = this.nameKey(this.absSearch);
-        return [].concat(...this.data.teachers.filter(t => this.absTeacher === '*' || t.name === this.absTeacher)
-          .map(t => t.students))
-          .filter(s => !this.isActive(s) && (!q || this.nameKey(s.name).indexOf(q) !== -1))
+        return [].concat(...this.data.teachers.map(t => t.students), this.formerFor('*'))
+          .filter(s => (this.absTeacher === '*' || s.teacher === this.absTeacher)
+            && !this.isActive(s) && (!q || this.nameKey(s.name).indexOf(q) !== -1))
           .sort((a, b) => (a.lastSeen < b.lastSeen ? 1 : a.lastSeen > b.lastSeen ? -1 : 0));
+      },
+      absentCount(teacher) {
+        return teacher.students.concat(this.formerFor(teacher.name)).filter(s => !this.isActive(s)).length;
       },
       // The list as the admin sees it, with every column, for Excel: UTF-8 with a BOM.
       downloadStudents(list, title, teacherName) {
@@ -1092,6 +1140,10 @@
         });
       },
 
+      // Today inside the year shown; for last year, its last day (honor date, months).
+      dayInYear() {
+        return this.data.today.slice(0, 4) === this.year ? this.data.today : this.year + '-12-31';
+      },
       // The year's months up to this one; the page starts on the last month.
       messageMonths() {
         if (!this.data) return [];
@@ -1303,7 +1355,7 @@
       },
       honorMonths() {
         if (!this.data) return [];
-        return Array.from(new Set(this.data.honors.map(h => h.month).concat([this.data.today.slice(0, 7)]))).sort();
+        return Array.from(new Set(this.data.honors.map(h => h.month).concat([this.dayInYear().slice(0, 7)]))).sort();
       },
       honorRows() {
         return this.data ? this.data.honors.filter(h => h.month === this.honMonth) : [];
