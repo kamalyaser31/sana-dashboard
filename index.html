@@ -206,282 +206,13 @@
           <button type="button" class="border border-gray-900 px-3 py-1" @click="cancelEditReport()">ألغِ</button>
         </div>
       </form>
-      </div>
-    </section>
 
-    <!-- 3. Students -->
-    <section id="students" aria-labelledby="students-h" class="mb-8">
-      <h2 id="students-h" tabindex="-1" class="text-xl font-bold mb-2">
-        <button type="button" class="text-start w-full" aria-controls="students-body"
-                :aria-expanded="String(isOpen('students'))" @click="toggleSection('students')"><span aria-hidden="true" x-text="isOpen('students') ? '− ' : '+ '"></span>الطلاب</button>
-      </h2>
-      <div id="students-body" x-show="isOpen('students')">
-      <div class="flex flex-wrap gap-4 mb-2">
-        <div>
-          <label for="teacher-select" class="font-bold block">المعلم</label>
-          <select id="teacher-select" x-model="teacher" class="border border-gray-700 p-1 min-h-[36px] bg-white">
-            <option value="*" :selected="teacher === '*'">كل المعلمين</option>
-            <template x-for="t in data.teachers" :key="t.name"><option :value="t.name" :selected="t.name === teacher" x-text="t.name + ' (' + activeCount(t) + ')'"></option></template>
-          </select>
-        </div>
-        <div>
-          <label for="search" class="font-bold block">ابحث بالاسم</label>
-          <input id="search" type="search" x-model="search" class="border border-gray-700 p-1 min-h-[36px]" aria-describedby="search-count">
-          <p id="search-count" x-text="filteredStudents().length + ' طالباً'"></p>
-        </div>
-        <div>
-          <label for="absent-filter" class="font-bold block">اعرض</label>
-          <select id="absent-filter" x-model="absentDays" class="border border-gray-700 p-1 min-h-[36px] bg-white" aria-describedby="search-count">
-            <option value="0">كل النشطين</option>
-            <option value="14">الغائبين أكثر من 14 يوماً</option>
-          </select>
-        </div>
-        <div>
-          <label for="msg-month" class="font-bold block">شهر رسالة وليّ الأمر</label>
-          <select id="msg-month" x-model="msgMonth" class="border border-gray-700 p-1 min-w-[120px] min-h-[36px] bg-white">
-            <template x-for="m in messageMonths()" :key="m"><option :value="m" :selected="m === msgMonth" x-text="m"></option></template>
-          </select>
-        </div>
-      </div>
-      <p class="mb-2" x-text="'هنا من حضر في آخر ' + activeDays() + ' يوماً؛ ومن غاب أكثر منها ففي قسم «الطلاب الغائبون».' + (formerFor('*').length ? ' ومعهم طلاب سنة ' + (Number(year) - 1) + ' الذين لم يحضروا هذه السنة بعد، بلا خانات تعديل.' : '')"></p>
-      <div class="overflow-x-auto">
-        <table class="text-sm">
-          <caption x-text="(absentDays === '0' ? 'الطلاب النشطون عند ' : 'الغائبون أكثر من ' + absentDays + ' يوماً من النشطين عند ') + teacherLabel() + '، الأحدث حضوراً أولاً'"></caption>
-          <thead><tr>
-            <th scope="col" class="nowrap">الاسم</th><th scope="col" class="nowrap" x-show="teacher === '*'">المعلم</th><th scope="col" class="nowrap">الجنس</th><th scope="col" class="nowrap">الفئة</th>
-            <th scope="col" class="nowrap">أول ظهور</th><th scope="col" class="nowrap">آخر ظهور</th><th scope="col" class="nowrap">أيام الغياب</th><th scope="col" class="nowrap">الحضور</th>
-            <th scope="col" class="nowrap">آخر حفظ</th><th scope="col" class="nowrap">الإعادة</th><th scope="col" class="nowrap">الأوسمة</th><th scope="col" class="nowrap">التكريمات</th>
-            <th scope="col" class="nowrap">السن</th><th scope="col" class="nowrap">سنة الميلاد والهاتف</th>
-          </tr></thead>
-          <tbody>
-            <template x-for="(s, i) in filteredStudents()" :key="k(s)">
-              <tr>
-                <th scope="row" class="nowrap"><span x-text="s.name"></span><span x-show="s.isNew"> (جديد)</span><span x-show="s.former" x-text="' (من سنة ' + (Number(year) - 1) + ')'"></span></th>
-                <td x-show="teacher === '*'" class="nowrap" x-text="s.teacher"></td>
-                <td class="nowrap">
-                  <template x-if="!s.former"><div>
-                    <label :for="'g-' + i" class="sr-only">الجنس</label>
-                    <select :id="'g-' + i" x-model="genders[k(s)]" class="border border-gray-700 p-1 min-h-[36px] bg-white text-sm">
-                      <option value="ذكر">ذكر</option><option value="أنثى">أنثى</option>
-                    </select>
-                  </div></template>
-                  <span x-show="s.former" x-text="s.gender"></span>
-                </td>
-                <td class="nowrap" x-text="s.category"></td><td class="nowrap" x-text="s.firstSeen"></td><td class="nowrap" x-text="s.lastSeen"></td>
-                <td class="nowrap" x-text="daysAway(s)"></td>
-                <td class="nowrap" x-text="s.attendance"></td><td class="nowrap" x-text="s.lastHifz"></td>
-                <td class="nowrap" x-text="s.repeats"></td><td class="nowrap" x-text="s.medals"></td><td class="nowrap" x-text="s.honors"></td>
-                <td class="nowrap" x-text="s.age === '' ? '' : s.age + ' سنة'"></td>
-                <td class="nowrap">
-                  <div class="flex flex-col gap-1.5 py-1">
-                    <template x-if="!s.former"><div class="flex items-center gap-1.5">
-                      <label :for="'by-' + i" class="sr-only">سنة الميلاد</label>
-                      <input :id="'by-' + i" type="text" inputmode="numeric" maxlength="4" placeholder="سنة الميلاد"
-                             x-model="details[k(s)].birthYear" class="border border-gray-700 p-1 w-24 min-h-[36px] text-sm">
-                      <label :for="'ph-' + i" class="sr-only">الهاتف</label>
-                      <input :id="'ph-' + i" type="tel" dir="ltr" placeholder="+20…"
-                             x-model="details[k(s)].phone" class="border border-gray-700 p-1 w-36 min-h-[36px] text-sm">
-                    </div></template>
-                    <span x-show="s.former" dir="ltr" x-text="[s.birthYear, s.phone].filter(Boolean).join('  ')"></span>
-                    <div class="flex items-center gap-2 flex-wrap" x-show="s.phone">
-                      <a :href="waLink(s)" target="_blank" rel="noopener" class="underline text-xs"
-                         :aria-label="'راسل ' + s.name + ' على WhatsApp' + (absentMessage(s) ? ' برسالة غياب جاهزة' : '') + ' (يفتح في نافذة جديدة)'"
-                         x-text="absentMessage(s) ? 'WhatsApp برسالة غياب' : 'WhatsApp'"></a>
-                      <a x-show="!s.former" :href="monthLink(s)" target="_blank" rel="noopener" class="underline text-xs"
-                         :aria-label="'أرسل لوليّ أمر ' + s.name + ' خلاصة شهر ' + msgMonth + ' على WhatsApp (يفتح في نافذة جديدة)'">رسالة الشهر</a>
-                    </div>
-                  </div>
-                </td>
-              </tr>
-            </template>
-          </tbody>
-        </table>
-      </div>
-      <p class="mt-2 flex flex-wrap gap-2 items-center">
-        <button type="button" class="border border-gray-900 px-3 py-1.5 min-h-[38px] font-bold rounded disabled:opacity-50"
-                :disabled="busy || !changedStudents(true).length" aria-describedby="students-changed"
-                @click="saveStudents(true)">احفظ الطلاب</button>
-        <span id="students-changed" x-text="changedStudents(true).length ? 'تغيّر ' + changedStudents(true).length + ' طالباً' : 'لا تغيير'"></span>
-        <button type="button" class="border border-gray-900 px-3 py-1" :disabled="!filteredStudents().length"
-                aria-describedby="students-download-hint" @click="downloadStudents(filteredStudents(), 'الطلاب النشطون', teacherLabel())">نزّل القائمة</button>
-        <span id="students-download-hint">ملف CSV يفتحه Excel، فيه ما يعرضه الجدول بعد البحث والتصفية.</span>
-      </p>
-      </div>
-    </section>
-
-    <!-- 3a. Students absent past ACTIVE_DAYS: out of the lists, still in the numbers -->
-    <section id="absent" aria-labelledby="absent-h" class="mb-8">
-      <h2 id="absent-h" tabindex="-1" class="text-xl font-bold mb-2">
-        <button type="button" class="text-start w-full" aria-controls="absent-body"
-                :aria-expanded="String(isOpen('absent'))" @click="toggleSection('absent')"><span aria-hidden="true" x-text="isOpen('absent') ? '− ' : '+ '"></span>الطلاب الغائبون</button>
-      </h2>
-      <div id="absent-body" x-show="isOpen('absent')">
-      <p class="mb-2" x-text="'من غاب أكثر من ' + activeDays() + ' يوماً. لا يُحذف من السجل ولا من الأرقام، ويعود إلى قسم «الطلاب» من أول تقرير يرد فيه.'"></p>
-      <p class="mb-2" x-show="data.former && data.former.length"
-         x-text="'ومعهم طلاب سنة ' + (Number(year) - 1) + ' الذين لم يحضروا هذه السنة بعد، بلا خانات تعديل؛ تُعدَّل بياناتهم من سنة ' + (Number(year) - 1) + '.'"></p>
-      <div class="flex flex-wrap gap-4 mb-2">
-        <div>
-          <label for="abs-teacher" class="font-bold block">المعلم</label>
-          <select id="abs-teacher" x-model="absTeacher" class="border border-gray-700 p-1 min-h-[36px] bg-white">
-            <option value="*" :selected="absTeacher === '*'">كل المعلمين</option>
-            <template x-for="t in data.teachers" :key="t.name"><option :value="t.name" :selected="t.name === absTeacher" x-text="t.name + ' (' + absentCount(t) + ')'"></option></template>
-          </select>
-        </div>
-        <div>
-          <label for="abs-search" class="font-bold block">ابحث بالاسم</label>
-          <input id="abs-search" type="search" x-model="absSearch" class="border border-gray-700 p-1 min-h-[36px]" aria-describedby="abs-count">
-          <p id="abs-count" x-text="absentStudents().length + ' طالباً'"></p>
-        </div>
-      </div>
-      <div class="overflow-x-auto" x-show="absentStudents().length">
-        <table class="text-sm">
-          <caption x-text="'الطلاب الغائبون عند ' + (absTeacher === '*' ? 'كل المعلمين' : absTeacher) + '، الأحدث حضوراً أولاً'"></caption>
-          <thead><tr>
-            <th scope="col" class="nowrap">الاسم</th><th scope="col" class="nowrap" x-show="absTeacher === '*'">المعلم</th><th scope="col" class="nowrap">الجنس</th><th scope="col" class="nowrap">الفئة</th>
-            <th scope="col" class="nowrap">أول ظهور</th><th scope="col" class="nowrap">آخر ظهور</th><th scope="col" class="nowrap">أيام الغياب</th><th scope="col" class="nowrap">الحضور</th>
-            <th scope="col" class="nowrap">آخر حفظ</th><th scope="col" class="nowrap">التكريمات</th><th scope="col" class="nowrap">السن</th><th scope="col" class="nowrap">سنة الميلاد والهاتف</th>
-          </tr></thead>
-          <tbody>
-            <template x-for="(s, i) in absentStudents()" :key="k(s)">
-              <tr>
-                <th scope="row" class="nowrap" x-text="s.name + (s.former ? ' (من سنة ' + (Number(year) - 1) + ')' : '')"></th>
-                <td x-show="absTeacher === '*'" class="nowrap" x-text="s.teacher"></td>
-                <td class="nowrap">
-                  <template x-if="!s.former"><div>
-                    <label :for="'ag-' + i" class="sr-only">الجنس</label>
-                    <select :id="'ag-' + i" x-model="genders[k(s)]" class="border border-gray-700 p-1 min-h-[36px] bg-white text-sm">
-                      <option value="ذكر">ذكر</option><option value="أنثى">أنثى</option>
-                    </select>
-                  </div></template>
-                  <span x-show="s.former" x-text="s.gender"></span>
-                </td>
-                <td class="nowrap" x-text="s.category"></td><td class="nowrap" x-text="s.firstSeen"></td><td class="nowrap" x-text="s.lastSeen"></td>
-                <td class="nowrap" x-text="daysAway(s)"></td><td class="nowrap" x-text="s.attendance"></td><td class="nowrap" x-text="s.lastHifz"></td><td class="nowrap" x-text="s.honors"></td>
-                <td class="nowrap" x-text="s.age === '' ? '' : s.age + ' سنة'"></td>
-                <td class="nowrap">
-                  <div class="flex flex-col gap-1.5 py-1">
-                    <template x-if="!s.former"><div class="flex items-center gap-1.5">
-                      <label :for="'aby-' + i" class="sr-only">سنة الميلاد</label>
-                      <input :id="'aby-' + i" type="text" inputmode="numeric" maxlength="4" placeholder="سنة الميلاد"
-                             x-model="details[k(s)].birthYear" class="border border-gray-700 p-1 w-24 min-h-[36px] text-sm">
-                      <label :for="'aph-' + i" class="sr-only">الهاتف</label>
-                      <input :id="'aph-' + i" type="tel" dir="ltr" placeholder="+20…"
-                             x-model="details[k(s)].phone" class="border border-gray-700 p-1 w-36 min-h-[36px] text-sm">
-                    </div></template>
-                    <span x-show="s.former" dir="ltr" x-text="[s.birthYear, s.phone].filter(Boolean).join('  ')"></span>
-                    <div class="flex items-center gap-2 flex-wrap" x-show="s.phone">
-                      <a :href="waLink(s)" target="_blank" rel="noopener" class="underline text-xs"
-                         :aria-label="'راسل ' + s.name + ' على WhatsApp برسالة غياب جاهزة (يفتح في نافذة جديدة)'">WhatsApp برسالة غياب</a>
-                    </div>
-                  </div>
-                </td>
-              </tr>
-            </template>
-          </tbody>
-        </table>
-      </div>
-      <p x-show="!absentStudents().length">لا غائبين هنا.</p>
-      <p class="mt-2 flex flex-wrap gap-2 items-center">
-        <button type="button" class="border border-gray-900 px-3 py-1.5 min-h-[38px] font-bold rounded disabled:opacity-50"
-                :disabled="busy || !changedStudents(false).length" aria-describedby="absent-changed"
-                @click="saveStudents(false)">احفظ الغائبين</button>
-        <span id="absent-changed" x-text="changedStudents(false).length ? 'تغيّر ' + changedStudents(false).length + ' طالباً' : 'لا تغيير'"></span>
-        <button type="button" class="border border-gray-900 px-3 py-1" :disabled="!absentStudents().length"
-                aria-describedby="absent-download-hint"
-                @click="downloadStudents(absentStudents(), 'الطلاب الغائبون', absTeacher === '*' ? 'كل المعلمين' : absTeacher)">نزّل القائمة</button>
-        <span id="absent-download-hint">ملف CSV يفتحه Excel، فيه ما يعرضه الجدول بعد البحث.</span>
-      </p>
-      </div>
-    </section>
-
-    <!-- 3c. One student's last halaqat, with their report files -->
-    <section id="history" aria-labelledby="history-h" class="mb-8">
-      <h2 id="history-h" tabindex="-1" class="text-xl font-bold mb-2">
-        <button type="button" class="text-start w-full" aria-controls="history-body"
-                :aria-expanded="String(isOpen('history'))" @click="toggleSection('history')"><span aria-hidden="true" x-text="isOpen('history') ? '− ' : '+ '"></span>سجل الطالب</button>
-      </h2>
-      <div id="history-body" x-show="isOpen('history')">
-      <p class="mb-2">آخر عشر حلقات للطالب، الأحدث أولاً، ولكل حلقة رابط ملف تقريرها؛ ابحث فيه عن اسمه. والتقارير قبل 2026-10-27 بلا رابط.</p>
-      <div class="flex flex-wrap gap-4 mb-2">
-        <div>
-          <label for="his-teacher" class="font-bold block">المعلم</label>
-          <select id="his-teacher" x-model="hisTeacher" @change="hisKey = ''" class="border border-gray-700 p-1">
-            <template x-for="t in data.teachers" :key="t.name"><option :value="t.name" :selected="t.name === hisTeacher" x-text="t.name"></option></template>
-          </select>
-        </div>
-        <div>
-          <label for="his-student" class="font-bold block">الطالب</label>
-          <select id="his-student" x-model="hisKey" class="border border-gray-700 p-1">
-            <option value="">-- اختر --</option>
-            <template x-for="s in historyStudents()" :key="s.key"><option :value="s.key" :selected="s.key === hisKey" x-text="s.name + (isActive(s) ? '' : ' (غائب)')"></option></template>
-          </select>
-        </div>
-      </div>
-      <div class="overflow-x-auto" x-show="historyRows().length">
-        <table class="text-sm">
-          <caption x-text="'آخر حلقات ' + historyName() + ' عند ' + hisTeacher + '، الأحدث أولاً'"></caption>
-          <thead><tr><th scope="col" class="nowrap">التاريخ</th><th scope="col" class="nowrap">الفترة</th><th scope="col" class="nowrap">رقم الحلقة</th><th scope="col" class="nowrap">التقرير</th></tr></thead>
-          <tbody>
-            <template x-for="h in historyRows()" :key="h.slot">
-              <tr>
-                <th scope="row" class="nowrap" x-text="h.day"></th><td class="nowrap" x-text="h.session"></td><td class="nowrap" x-text="h.num"></td>
-                <td>
-                  <a x-show="h.link" :href="h.link" target="_blank" rel="noopener" class="underline"
-                     :aria-label="'افتح تقرير ' + h.day + ' ' + h.session + ' (نافذة جديدة)'">افتح التقرير</a>
-                  <span x-show="!h.link">لا رابط</span>
-                </td>
-              </tr>
-            </template>
-          </tbody>
-        </table>
-      </div>
-      <p x-show="hisKey && !historyRows().length">لا حلقات لهذا الطالب.</p>
-      </div>
-    </section>
-
-    <!-- 3b. Honors given by the administration (S-60) -->
-    <section id="honors" aria-labelledby="honors-h" class="mb-8">
-      <h2 id="honors-h" tabindex="-1" class="text-xl font-bold mb-2">
-        <button type="button" class="text-start w-full" aria-controls="honors-body"
-                :aria-expanded="String(isOpen('honors'))" @click="toggleSection('honors')"><span aria-hidden="true" x-text="isOpen('honors') ? '− ' : '+ '"></span>التكريمات</button>
-      </h2>
-      <div id="honors-body" x-show="isOpen('honors')">
-      <p class="mb-2">تكريم الإدارة، غير وسام المعلم في تقريره؛ يُحسب في مصروف شهره، ويُنشر عدده بلا أسماء. ولا يُضاف ولا يُحذف في شهر ثابت.</p>
-      <form @submit.prevent="addHonor()" class="flex flex-wrap gap-4 items-end mb-4">
-        <div>
-          <label for="hon-teacher" class="font-bold block">المعلم</label>
-          <select id="hon-teacher" x-model="honTeacher" @change="honKey = ''" required class="border border-gray-700 p-1">
-            <template x-for="t in data.teachers" :key="t.name"><option :value="t.name" :selected="t.name === honTeacher" x-text="t.name"></option></template>
-          </select>
-        </div>
-        <div>
-          <label for="hon-student" class="font-bold block">الطالب</label>
-          <select id="hon-student" x-model="honKey" required class="border border-gray-700 p-1">
-            <option value="">-- اختر --</option>
-            <template x-for="s in honorStudents()" :key="s.key"><option :value="s.key" :selected="s.key === honKey" x-text="s.name"></option></template>
-          </select>
-        </div>
-        <div>
-          <label for="hon-date" class="font-bold block">تاريخ التكريم</label>
-          <input id="hon-date" type="text" inputmode="numeric" dir="ltr" x-model="honDate" required
-                 class="border border-gray-700 p-1 w-32" aria-describedby="hon-date-hint">
-          <p id="hon-date-hint">بصيغة سنة-شهر-يوم، مثل 2026-10-25</p>
-        </div>
-        <div>
-          <label for="hon-reason" class="font-bold block">السبب (اختياري)</label>
-          <input id="hon-reason" type="text" maxlength="100" x-model="honReason" class="border border-gray-700 p-1 w-64">
-        </div>
-        <button type="submit" class="border-2 border-gray-900 px-3 py-1 font-bold" :disabled="busy">سجّل التكريم</button>
-      </form>
-      <div class="mb-2">
-        <label for="hon-month" class="font-bold block">شهر التكريمات</label>
-        <select id="hon-month" x-model="honMonth" class="border border-gray-700 p-1">
-          <template x-for="m in honorMonths()" :key="m"><option :value="m" :selected="m === honMonth" x-text="m"></option></template>
-        </select>
-      </div>
+      <!-- Honors of the month and teacher chosen above (S-60); added from a student's actions. -->
+      <h3 id="honors-h" tabindex="-1" class="font-bold mt-6 mb-1">التكريمات</h3>
+      <p class="mb-2">تكريم الإدارة، يُضاف من «إجراءات» الطالب في قسم «الطلاب». ويُحسب في مصروف شهره، ويُنشر عدده بلا أسماء، ولا يُحذف في شهر ثابت.</p>
       <div class="overflow-x-auto" x-show="honorRows().length">
         <table class="text-sm">
-          <caption x-text="'تكريمات ' + honMonth + '، الأحدث أولاً: ' + honorRows().length"></caption>
+          <caption x-text="'تكريمات ' + (repTeacher === '*' ? 'كل المعلمين' : repTeacher) + ' في ' + repMonth + '، الأحدث أولاً: ' + honorRows().length"></caption>
           <thead><tr>
             <th scope="col" class="nowrap">التاريخ</th><th scope="col" class="nowrap">الطالب</th><th scope="col" class="nowrap">المعلم</th><th scope="col">السبب</th><th scope="col" class="nowrap">إجراء</th>
           </tr></thead>
@@ -520,58 +251,196 @@
       </div>
     </section>
 
-    <!-- 4. Fix a name -->
-    <section id="fix-name" aria-labelledby="fix-h" class="mb-8">
-      <h2 id="fix-h" tabindex="-1" class="text-xl font-bold mb-2">
-        <button type="button" class="text-start w-full" aria-controls="fix-name-body"
-                :aria-expanded="String(isOpen('fix-name'))" @click="toggleSection('fix-name')"><span aria-hidden="true" x-text="isOpen('fix-name') ? '− ' : '+ '"></span>تصحيح اسم</button>
+    <!-- 3. Students: active, absent and last year's in one list; each row's actions open under it -->
+    <section id="students" aria-labelledby="students-h" class="mb-8">
+      <h2 id="students-h" tabindex="-1" class="text-xl font-bold mb-2">
+        <button type="button" class="text-start w-full" aria-controls="students-body"
+                :aria-expanded="String(isOpen('students'))" @click="toggleSection('students')"><span aria-hidden="true" x-text="isOpen('students') ? '− ' : '+ '"></span>الطلاب</button>
       </h2>
-      <div id="fix-name-body" x-show="isOpen('fix-name')">
-      <p class="mb-2">اختر المعلم في قسم الطلاب، ثم الاسم الخطأ من النشطين، ثم الصحيح من الطلاب كلهم، لأن الغائب قد يعود باسم محرّف. والدمج فوري لا يُنقض.</p>
-      <p x-show="teacher === '*'" class="font-bold mb-2">اختر معلماً واحداً في قسم الطلاب أولاً.</p>
-      <form x-show="teacher !== '*'" @submit.prevent="reviewAlias()" class="flex flex-col gap-3 max-w-xl">
-        <p>المعلم: <strong x-text="teacher"></strong></p>
+      <div id="students-body" x-show="isOpen('students')">
+      <p class="mb-2" x-text="'النشطون من حضر في آخر ' + activeDays() + ' يوماً، والغائبون من غاب أكثر منها؛ ولا يُحذف أحد من السجل ولا من الأرقام.' + (formerFor('*').length ? ' وطلاب سنة ' + (Number(year) - 1) + ' الذين لم يحضروا هذه السنة بعد يظهرون بلا خانات تعديل.' : '')"></p>
+      <div class="flex flex-wrap gap-4 mb-2">
         <div>
-          <label for="alias-from" class="font-bold block">الاسم كما ورد (الخطأ)</label>
-          <select id="alias-from" x-model="aliasFrom" required class="border border-gray-700 p-1 w-full">
-            <option value="">-- اختر --</option>
-            <template x-for="s in currentStudents().filter(x => isActive(x))" :key="k(s)">
-              <option :value="s.name" x-text="s.name + (s.isNew ? ' (جديد)' : '') + '، حضر ' + s.attendance"></option>
-            </template>
+          <label for="teacher-select" class="font-bold block">المعلم</label>
+          <select id="teacher-select" x-model="teacher" class="border border-gray-700 p-1 min-h-[36px] bg-white">
+            <option value="*" :selected="teacher === '*'">كل المعلمين</option>
+            <template x-for="t in data.teachers" :key="t.name"><option :value="t.name" :selected="t.name === teacher" x-text="t.name + ' (' + viewCount(t.name) + ')'"></option></template>
           </select>
         </div>
-        <fieldset>
-          <legend class="font-bold">الاسم الصحيح</legend>
-          <label class="me-4"><input type="radio" value="list" x-model="aliasMode"> من طلاب المعلم</label>
-          <label><input type="radio" value="typed" x-model="aliasMode"> أكتبه</label>
-          <div x-show="aliasMode === 'list'" class="mt-2">
-            <label for="alias-to-list" class="sr-only">الاسم الصحيح من القائمة</label>
-            <select id="alias-to-list" x-model="aliasToList" class="border border-gray-700 p-1 w-full">
-              <option value="">-- اختر --</option>
-              <template x-for="s in currentStudents().filter(x => x.name !== aliasFrom)" :key="k(s)">
-                <option :value="s.name" x-text="s.name + '، حضر ' + s.attendance + (isActive(s) ? '' : '، غائب')"></option>
-              </template>
-            </select>
-          </div>
-          <div x-show="aliasMode === 'typed'" class="mt-2">
-            <label for="alias-to-typed" class="sr-only">اكتب الاسم الصحيح</label>
-            <input id="alias-to-typed" type="text" x-model="aliasToTyped" class="border border-gray-700 p-1 w-full">
-          </div>
-        </fieldset>
-        <button type="submit" class="border-2 border-gray-900 px-3 py-1 font-bold self-start" :disabled="busy">راجع قبل الدمج</button>
-      </form>
-
-      <div x-show="review" x-cloak id="alias-review" tabindex="-1" class="border-2 border-gray-900 p-3 mt-3 max-w-xl"
-           role="group" aria-labelledby="review-h">
-        <h3 id="review-h" class="font-bold">راجع الدمج</h3>
-        <p x-text="review && reviewText()"></p>
-        <div class="flex gap-3 mt-2">
-          <button type="button" class="border-2 border-gray-900 px-3 py-1 font-bold" :disabled="busy" @click="confirmAlias()">ادمج الآن</button>
-          <button type="button" class="border border-gray-900 px-3 py-1" @click="review = null; focusEl('alias-from')">إلغاء</button>
+        <div>
+          <label for="student-view" class="font-bold block">اعرض</label>
+          <select id="student-view" x-model="view" class="border border-gray-700 p-1 min-h-[36px] bg-white" aria-describedby="search-count">
+            <option value="active">النشطين</option>
+            <option value="away14">النشطين الغائبين أكثر من 14 يوماً</option>
+            <option value="absent">الغائبين</option>
+            <option value="all">الكل</option>
+          </select>
+        </div>
+        <div>
+          <label for="search" class="font-bold block">ابحث بالاسم</label>
+          <input id="search" type="search" x-model="search" class="border border-gray-700 p-1 min-h-[36px]" aria-describedby="search-count">
+          <p id="search-count" x-text="shownStudents().length + ' طالباً'"></p>
+        </div>
+        <div>
+          <label for="msg-month" class="font-bold block">شهر رسالة وليّ الأمر</label>
+          <select id="msg-month" x-model="msgMonth" class="border border-gray-700 p-1 min-w-[120px] min-h-[36px] bg-white">
+            <template x-for="m in messageMonths()" :key="m"><option :value="m" :selected="m === msgMonth" x-text="m"></option></template>
+          </select>
         </div>
       </div>
+      <div class="overflow-x-auto" x-show="shownStudents().length">
+        <table class="text-sm">
+          <caption x-text="viewLabel() + ' عند ' + teacherLabel() + '، الأحدث حضوراً أولاً'"></caption>
+          <thead><tr>
+            <th scope="col" class="nowrap">الاسم</th><th scope="col" class="nowrap" x-show="teacher === '*'">المعلم</th><th scope="col" class="nowrap">الجنس</th><th scope="col" class="nowrap">الفئة</th>
+            <th scope="col" class="nowrap">أول ظهور</th><th scope="col" class="nowrap">آخر ظهور</th><th scope="col" class="nowrap">أيام الغياب</th><th scope="col" class="nowrap">الحضور</th>
+            <th scope="col" class="nowrap">آخر حفظ</th><th scope="col" class="nowrap">الإعادة</th><th scope="col" class="nowrap">الأوسمة</th><th scope="col" class="nowrap">التكريمات</th>
+            <th scope="col" class="nowrap">السن</th><th scope="col" class="nowrap">سنة الميلاد والهاتف</th><th scope="col" class="nowrap">إجراءات</th>
+          </tr></thead>
+          <!-- One tbody per student: its row, then its actions when open. -->
+          <template x-for="(s, i) in shownStudents()" :key="k(s)">
+            <tbody>
+              <tr>
+                <th scope="row" class="nowrap"><span x-text="s.name"></span><span x-show="s.isNew"> (جديد)</span><span x-show="!s.former && !isActive(s)"> (غائب)</span><span x-show="s.former" x-text="' (من سنة ' + (Number(year) - 1) + ')'"></span></th>
+                <td x-show="teacher === '*'" class="nowrap" x-text="s.teacher"></td>
+                <td class="nowrap">
+                  <template x-if="!s.former"><div>
+                    <label :for="'g-' + i" class="sr-only">الجنس</label>
+                    <select :id="'g-' + i" x-model="genders[k(s)]" class="border border-gray-700 p-1 min-h-[36px] bg-white text-sm">
+                      <option value="ذكر">ذكر</option><option value="أنثى">أنثى</option>
+                    </select>
+                  </div></template>
+                  <span x-show="s.former" x-text="s.gender"></span>
+                </td>
+                <td class="nowrap" x-text="s.category"></td><td class="nowrap" x-text="s.firstSeen"></td><td class="nowrap" x-text="s.lastSeen"></td>
+                <td class="nowrap" x-text="daysAway(s)"></td>
+                <td class="nowrap" x-text="s.attendance"></td><td class="nowrap" x-text="s.lastHifz"></td>
+                <td class="nowrap" x-text="s.repeats"></td><td class="nowrap" x-text="s.medals"></td><td class="nowrap" x-text="s.honors"></td>
+                <td class="nowrap" x-text="s.age === '' ? '' : s.age + ' سنة'"></td>
+                <td class="nowrap">
+                  <div class="flex flex-col gap-1.5 py-1">
+                    <template x-if="!s.former"><div class="flex items-center gap-1.5">
+                      <label :for="'by-' + i" class="sr-only">سنة الميلاد</label>
+                      <input :id="'by-' + i" type="text" inputmode="numeric" maxlength="4" placeholder="سنة الميلاد"
+                             x-model="details[k(s)].birthYear" class="border border-gray-700 p-1 w-24 min-h-[36px] text-sm">
+                      <label :for="'ph-' + i" class="sr-only">الهاتف</label>
+                      <input :id="'ph-' + i" type="tel" dir="ltr" placeholder="+20…"
+                             x-model="details[k(s)].phone" class="border border-gray-700 p-1 w-36 min-h-[36px] text-sm">
+                    </div></template>
+                    <span x-show="s.former" dir="ltr" x-text="[s.birthYear, s.phone].filter(Boolean).join('  ')"></span>
+                    <div class="flex items-center gap-2 flex-wrap" x-show="s.phone">
+                      <a :href="waLink(s)" target="_blank" rel="noopener" class="underline text-xs"
+                         :aria-label="'راسل ' + s.name + ' على WhatsApp' + (absentMessage(s) ? ' برسالة غياب جاهزة' : '') + ' (يفتح في نافذة جديدة)'"
+                         x-text="absentMessage(s) ? 'WhatsApp برسالة غياب' : 'WhatsApp'"></a>
+                      <a x-show="!s.former" :href="monthLink(s)" target="_blank" rel="noopener" class="underline text-xs"
+                         :aria-label="'أرسل لوليّ أمر ' + s.name + ' خلاصة شهر ' + msgMonth + ' على WhatsApp (يفتح في نافذة جديدة)'">رسالة الشهر</a>
+                    </div>
+                  </div>
+                </td>
+                <td class="nowrap">
+                  <button type="button" :id="'act-btn-' + i" class="border border-gray-900 px-2.5 py-1 min-h-[36px] text-xs font-semibold rounded hover:bg-gray-100"
+                          :aria-expanded="String(openRow === k(s))" :aria-controls="'act-' + i"
+                          :aria-label="'إجراءات ' + s.name" @click="toggleRow(s, i)">إجراءات</button>
+                </td>
+              </tr>
+              <tr x-show="openRow === k(s)">
+                <td colspan="15" class="bg-gray-50">
+                  <div :id="'act-' + i" class="flex flex-col gap-4 py-2" x-show="openRow === k(s)">
+                    <h3 :id="'act-h-' + i" tabindex="-1" class="font-bold" x-text="'إجراءات ' + s.name + ' عند ' + s.teacher"></h3>
 
-      <div class="overflow-x-auto mt-4">
+                    <div>
+                      <h4 class="font-bold mb-1">حلقاته</h4>
+                      <p class="mb-1">آخر عشر حلقات، الأحدث أولاً، ولكل حلقة رابط ملف تقريرها؛ ابحث فيه عن اسمه. والتقارير قبل 2026-10-27 بلا رابط.</p>
+                      <table class="text-sm" x-show="historyRows(s).length">
+                        <caption x-text="'آخر حلقات ' + s.name"></caption>
+                        <thead><tr><th scope="col" class="nowrap">التاريخ</th><th scope="col" class="nowrap">الفترة</th><th scope="col" class="nowrap">رقم الحلقة</th><th scope="col" class="nowrap">التقرير</th></tr></thead>
+                        <tbody>
+                          <template x-for="h in historyRows(s)" :key="h.slot">
+                            <tr>
+                              <th scope="row" class="nowrap" x-text="h.day"></th><td class="nowrap" x-text="h.session"></td><td class="nowrap" x-text="h.num"></td>
+                              <td>
+                                <a x-show="h.link" :href="h.link" target="_blank" rel="noopener" class="underline"
+                                   :aria-label="'افتح تقرير ' + h.day + ' ' + h.session + ' (نافذة جديدة)'">افتح التقرير</a>
+                                <span x-show="!h.link">لا رابط</span>
+                              </td>
+                            </tr>
+                          </template>
+                        </tbody>
+                      </table>
+                      <p x-show="!historyRows(s).length" x-text="s.former ? 'حلقاته في سنة ' + (Number(year) - 1) + '؛ انتقل إليها لتراها.' : 'لا حلقات لهذا الطالب.'"></p>
+                    </div>
+
+                    <p x-show="s.former" x-text="'تصحيح اسمه وتكريمه من سنة ' + (Number(year) - 1) + '.'"></p>
+
+                    <form x-show="!s.former" @submit.prevent="addHonor(s)" class="flex flex-wrap gap-4 items-end">
+                      <h4 class="font-bold w-full">كرّمه</h4>
+                      <p class="w-full">تكريم الإدارة، غير وسام المعلم في تقريره؛ يُحسب في مصروف شهره، ويُنشر عدده بلا أسماء. ولا يُضاف في شهر ثابت.</p>
+                      <div>
+                        <label :for="'hon-date-' + i" class="font-bold block">تاريخ التكريم</label>
+                        <input :id="'hon-date-' + i" type="text" inputmode="numeric" dir="ltr" x-model="honDate" required
+                               class="border border-gray-700 p-1 w-32" :aria-describedby="'hon-date-hint-' + i">
+                        <p :id="'hon-date-hint-' + i">بصيغة سنة-شهر-يوم، مثل 2026-10-25</p>
+                      </div>
+                      <div>
+                        <label :for="'hon-reason-' + i" class="font-bold block">السبب (اختياري)</label>
+                        <input :id="'hon-reason-' + i" type="text" maxlength="100" x-model="honReason" class="border border-gray-700 p-1 w-64">
+                      </div>
+                      <button type="submit" class="border-2 border-gray-900 px-3 py-1 font-bold" :disabled="busy">سجّل التكريم</button>
+                    </form>
+
+                    <form x-show="!s.former" @submit.prevent="reviewAlias(s)" class="flex flex-col gap-3 max-w-xl">
+                      <h4 class="font-bold">صحّح الاسم</h4>
+                      <p>إن كان «<span x-text="s.name"></span>» اسماً محرّفاً لطالب آخر عند المعلم نفسه فاختر الصحيح، أو اكتبه إن لم يكن في القائمة. والدمج فوري لا يُنقض.</p>
+                      <fieldset>
+                        <legend class="font-bold">الاسم الصحيح</legend>
+                        <label class="me-4"><input type="radio" value="list" x-model="aliasMode"> من طلاب المعلم</label>
+                        <label><input type="radio" value="typed" x-model="aliasMode"> أكتبه</label>
+                        <div x-show="aliasMode === 'list'" class="mt-2">
+                          <label :for="'alias-to-list-' + i" class="sr-only">الاسم الصحيح من القائمة</label>
+                          <select :id="'alias-to-list-' + i" x-model="aliasToList" class="border border-gray-700 p-1 w-full">
+                            <option value="">-- اختر --</option>
+                            <template x-for="o in aliasTargets(s)" :key="k(o)">
+                              <option :value="o.name" x-text="o.name + '، حضر ' + o.attendance + (isActive(o) ? '' : '، غائب')"></option>
+                            </template>
+                          </select>
+                        </div>
+                        <div x-show="aliasMode === 'typed'" class="mt-2">
+                          <label :for="'alias-to-typed-' + i" class="sr-only">اكتب الاسم الصحيح</label>
+                          <input :id="'alias-to-typed-' + i" type="text" x-model="aliasToTyped" class="border border-gray-700 p-1 w-full">
+                        </div>
+                      </fieldset>
+                      <button type="submit" class="border-2 border-gray-900 px-3 py-1 font-bold self-start" :disabled="busy">راجع قبل الدمج</button>
+                      <div x-show="review && review.k === k(s)" :id="'alias-review-' + i" tabindex="-1" class="border-2 border-gray-900 p-3"
+                           role="group" :aria-labelledby="'review-h-' + i">
+                        <h5 :id="'review-h-' + i" class="font-bold">راجع الدمج</h5>
+                        <p x-text="review && review.k === k(s) ? reviewText() : ''"></p>
+                        <div class="flex gap-3 mt-2">
+                          <button type="button" class="border-2 border-gray-900 px-3 py-1 font-bold" :disabled="busy" @click="confirmAlias()">ادمج الآن</button>
+                          <button type="button" class="border border-gray-900 px-3 py-1" @click="review = null; focusEl('act-h-' + i)">إلغاء</button>
+                        </div>
+                      </div>
+                    </form>
+
+                    <button type="button" class="border border-gray-900 px-3 py-1 self-start" @click="toggleRow(s, i)">أغلق الإجراءات</button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </template>
+        </table>
+      </div>
+      <p x-show="!shownStudents().length">لا طلاب في هذا العرض.</p>
+      <p class="mt-2 flex flex-wrap gap-2 items-center">
+        <button type="button" class="border border-gray-900 px-3 py-1.5 min-h-[38px] font-bold rounded disabled:opacity-50"
+                :disabled="busy || !changedStudents().length" aria-describedby="students-changed"
+                @click="saveStudents()">احفظ الطلاب</button>
+        <span id="students-changed" x-text="changedStudents().length ? 'تغيّر ' + changedStudents().length + ' طالباً' : 'لا تغيير'"></span>
+        <button type="button" class="border border-gray-900 px-3 py-1" :disabled="!shownStudents().length"
+                aria-describedby="students-download-hint" @click="downloadStudents(shownStudents(), viewLabel(), teacherLabel())">نزّل القائمة</button>
+        <span id="students-download-hint">ملف CSV يفتحه Excel، فيه ما يعرضه الجدول بعد البحث والتصفية.</span>
+      </p>
+
+      <div class="overflow-x-auto mt-6">
         <table class="text-sm">
           <caption>الأسماء البديلة المحفوظة</caption>
           <thead><tr><th scope="col" class="nowrap">المعلم</th><th scope="col" class="nowrap">كما ورد</th><th scope="col" class="nowrap">الصحيح</th><th scope="col" class="nowrap">طُبّق</th><th scope="col" class="nowrap">حذف</th></tr></thead>
@@ -774,14 +643,14 @@
     return {
       data: null, status: '', error: '', busy: false, year: '', test: false,
       token: '', who: '', loginName: '', loginPassword: '',
-      month: '', teacher: '', repTeacher: '*', repMonth: '', search: '', absentDays: '0', genders: {},
+      month: '', teacher: '', repTeacher: '*', repMonth: '', search: '', view: 'active', openRow: '', genders: {},
       details: {},
-      aliasFrom: '', aliasMode: 'list', aliasToList: '', aliasToTyped: '', review: null, pendingDelete: -1,
+      aliasMode: 'list', aliasToList: '', aliasToTyped: '', review: null, pendingDelete: -1,
       editing: null, editHours: '', editMinutes: '', editStudents: '', pendingReport: -1,
-      honTeacher: '', honKey: '', honDate: '', honReason: '', honMonth: '', pendingHonor: -1, honorAmountInput: '',
+      honDate: '', honReason: '', pendingHonor: -1, honorAmountInput: '',
       rates: {}, fixedAmounts: {}, payMonth: '', payPassword: '', payEditing: false,
       expMonth: '', expAmount: '',
-      absTeacher: '*', absSearch: '', hisTeacher: '', hisKey: '', msgMonth: '',
+      msgMonth: '',
       openSections: {}, NUMBER_COLUMNS,
 
       init() {
@@ -918,16 +787,10 @@
         this.pendingDelete = -1;
         this.editing = null;
         this.pendingReport = -1;
-        if (!data.teachers.some(t => t.name === this.honTeacher)) this.honTeacher = data.teachers.length ? data.teachers[0].name : '';
         if (!this.honDate) this.honDate = this.dayInYear();
-        if (this.honorMonths().indexOf(this.honMonth) === -1) this.honMonth = this.dayInYear().slice(0, 7);
         this.pendingHonor = -1;
+        this.review = null;
         this.honorAmountInput = String(data.honorAmount || '');
-        if (this.absTeacher !== '*' && !data.teachers.some(t => t.name === this.absTeacher)) this.absTeacher = '*';
-        if (!data.teachers.some(t => t.name === this.hisTeacher)) {
-          this.hisTeacher = data.teachers.length ? data.teachers[0].name : '';
-          this.hisKey = '';
-        }
         const msgMonths = this.messageMonths();
         if (msgMonths.indexOf(this.msgMonth) === -1) {
           this.msgMonth = msgMonths.length > 1 ? msgMonths[msgMonths.length - 2] : (msgMonths[0] || '');
@@ -1064,34 +927,44 @@
         const days = this.daysAway(s);
         return days === '' || days <= this.activeDays();
       },
-      // The active students only; the absent ones have their own section.
       // Last year's students not seen this year, for one teacher or '*', marked read-only.
       formerFor(teacher) {
         if (!this.data) return [];
         return (this.data.former || []).filter(s => teacher === '*' || s.teacher === teacher)
           .map(s => Object.assign({ former: true }, s));
       },
-      activeCount(teacher) {
-        return teacher.students.concat(this.formerFor(teacher.name)).filter(s => this.isActive(s)).length;
+      // Whether a student belongs in the chosen view: one list instead of three sections (2026-11-01).
+      inView(s) {
+        const active = this.isActive(s);
+        if (this.view === 'active') return active;
+        if (this.view === 'away14') return active && this.daysAway(s) > 14;
+        if (this.view === 'absent') return !active;
+        return true;
       },
-      filteredStudents() {
+      viewLabel() {
+        return { active: 'الطلاب النشطون', away14: 'النشطون الغائبون أكثر من 14 يوماً', absent: 'الطلاب الغائبون',
+          all: 'كل الطلاب' }[this.view];
+      },
+      viewCount(teacher) {
+        const t = this.data.teachers.find(x => x.name === teacher);
+        return (t ? t.students : []).concat(this.formerFor(teacher)).filter(s => this.inView(s)).length;
+      },
+      shownStudents() {
         const q = this.nameKey(this.search);
-        const min = Number(this.absentDays);
-        return this.currentStudents().concat(this.formerFor(this.teacher)).filter(s => this.isActive(s)
-          && (!q || this.nameKey(s.name).indexOf(q) !== -1) && (!min || this.daysAway(s) > min));
-      },
-      // This year's absent students, then last year's not seen this year (read-only: their
-      // details live in last year's registry).
-      absentStudents() {
-        if (!this.data) return [];
-        const q = this.nameKey(this.absSearch);
-        return [].concat(...this.data.teachers.map(t => t.students), this.formerFor('*'))
-          .filter(s => (this.absTeacher === '*' || s.teacher === this.absTeacher)
-            && !this.isActive(s) && (!q || this.nameKey(s.name).indexOf(q) !== -1))
+        return this.currentStudents().concat(this.formerFor(this.teacher))
+          .filter(s => this.inView(s) && (!q || this.nameKey(s.name).indexOf(q) !== -1))
           .sort((a, b) => (a.lastSeen < b.lastSeen ? 1 : a.lastSeen > b.lastSeen ? -1 : 0));
       },
-      absentCount(teacher) {
-        return teacher.students.concat(this.formerFor(teacher.name)).filter(s => !this.isActive(s)).length;
+      // A row's actions open under it; focus goes to their heading, and back to the button on closing.
+      toggleRow(s, i) {
+        const open = this.openRow !== this.k(s);
+        this.openRow = open ? this.k(s) : '';
+        this.review = null;
+        this.aliasMode = 'list';
+        this.aliasToList = '';
+        this.aliasToTyped = '';
+        this.honReason = '';
+        this.focusSoon(open ? 'act-h-' + i : 'act-btn-' + i);
       },
       // The list as the admin sees it, with every column, for Excel: UTF-8 with a BOM.
       downloadStudents(list, title, teacherName) {
@@ -1118,22 +991,12 @@
         this.status = 'نُزّل الملف «' + name + '»، وفيه ' + list.length + ' طالباً.';
       },
 
-      historyStudents() {
-        const t = this.data ? this.data.teachers.find(x => x.name === this.hisTeacher) : null;
-        return t ? t.students.slice().sort((a, b) => a.name.localeCompare(b.name, 'ar')) : [];
-      },
-      historyName() {
-        const s = this.historyStudents().find(x => x.key === this.hisKey);
-        return s ? s.name : '';
-      },
       // Each of the student's last halaqat, with the link of its row in «تقارير الحلقات»:
       // the same teacher, day and session label as the sheet writes it (_sessionLabel).
-      historyRows() {
-        const s = this.historyStudents().find(x => x.key === this.hisKey);
-        if (!s) return [];
+      historyRows(s) {
         return (s.recent || []).map(h => {
           const label = h.num ? h.session + ' (حلقة ' + h.num + ')' : h.session;
-          const rows = this.data.reports.filter(r => r.teacher === this.hisTeacher && r.day === h.day && r.session === label);
+          const rows = this.data.reports.filter(r => r.teacher === s.teacher && r.day === h.day && r.session === label);
           const best = rows.find(r => !r.status && r.link) || rows.find(r => r.link);
           return { slot: h.day + '|' + h.session + '|' + h.num, day: h.day, session: h.session, num: h.num,
             link: best ? best.link : '' };
@@ -1223,21 +1086,20 @@
       k(s) {
         return s.teacher + '|' + s.key;
       },
-      // Every student whose gender, birth year or phone differs from the sheet, in all teachers (U-03),
-      // the active ones or the absent ones: each section saves its own.
-      changedStudents(active) {
+      // Every student whose gender, birth year or phone differs from the sheet, in all teachers and views (U-03).
+      changedStudents() {
         if (!this.data) return [];
         const out = [];
         this.data.teachers.forEach(t => t.students.forEach(s => {
           const d = this.details[this.k(s)];
-          if (!d || this.isActive(s) !== active) return;
+          if (!d) return;
           if (this.genders[this.k(s)] !== s.gender || d.birthYear.trim() !== String(s.birthYear || '')
             || d.phone.trim() !== (s.phone || '')) out.push(s);
         }));
         return out;
       },
-      saveStudents(active) {
-        const list = this.changedStudents(active);
+      saveStudents() {
+        const list = this.changedStudents();
         if (list.length > MAX_STUDENTS) {
           return this.fail('تغيّر ' + list.length + ' طالباً، ويُحفظ ' + MAX_STUDENTS
             + ' في المرة على الأكثر؛ أعد بعض الخانات كما كانت، واحفظ، ثم غيّرها.');
@@ -1254,20 +1116,21 @@
       aliasTo() {
         return (this.aliasMode === 'list' ? this.aliasToList : this.aliasToTyped).trim();
       },
-      reviewAlias() {
+      // The teacher's other students, any of whom the wrong name may belong to, the absent too.
+      aliasTargets(s) {
+        const t = this.data.teachers.find(x => x.name === s.teacher);
+        return t ? t.students.filter(o => o.key !== s.key).sort((a, b) => a.name.localeCompare(b.name, 'ar')) : [];
+      },
+      reviewAlias(s) {
         const to = this.aliasTo();
-        if (!this.aliasFrom || !to) {
-          this.error = 'اختر الاسم الخطأ والاسم الصحيح.';
+        if (!to) {
+          this.error = 'اختر الاسم الصحيح أو اكتبه.';
           this.$nextTick(() => this.focusEl('error'));
           return;
         }
-        const list = this.currentStudents();
-        this.review = {
-          from: list.find(s => s.name === this.aliasFrom),
-          to: list.find(s => s.name === to) || null,
-          toName: to,
-        };
-        this.$nextTick(() => this.focusEl('alias-review'));
+        const i = this.shownStudents().findIndex(x => this.k(x) === this.k(s));
+        this.review = { k: this.k(s), teacher: s.teacher, from: s, to: this.aliasTargets(s).find(o => o.name === to) || null, toName: to };
+        this.focusSoon('alias-review-' + i);
       },
       reviewText() {
         const r = this.review;
@@ -1278,10 +1141,13 @@
           : 'لا صف باسم «' + r.toName + '»، فيُعاد تسمية ' + from + ' إليه.';
       },
       confirmAlias() {
-        const alias = { teacher: this.teacher, from: this.review.from.name, to: this.review.toName };
+        const alias = { teacher: this.review.teacher, from: this.review.from.name, to: this.review.toName };
         this.review = null;
         this.call('applyAlias', alias, result => {
-          this.aliasFrom = ''; this.aliasToList = ''; this.aliasToTyped = '';
+          this.openRow = '';
+          this.aliasToList = '';
+          this.aliasToTyped = '';
+          this.focusSoon('students-h');
           const word = { merged: 'دُمج', renamed: 'أُعيدت تسمية', absent: 'لم يوجد' }[result.outcome] || result.outcome;
           return word + ' «' + alias.from + '» ← «' + alias.to + '». ويُطبَّق البديل على التقارير الآتية.';
         });
@@ -1349,16 +1215,10 @@
           return 'حُفظت ' + said.join('؛ و') + '.';
         });
       },
-      honorStudents() {
-        const t = this.data ? this.data.teachers.find(x => x.name === this.honTeacher) : null;
-        return t ? t.students.filter(s => this.isActive(s)).sort((a, b) => a.name.localeCompare(b.name, 'ar')) : [];
-      },
-      honorMonths() {
-        if (!this.data) return [];
-        return Array.from(new Set(this.data.honors.map(h => h.month).concat([this.dayInYear().slice(0, 7)]))).sort();
-      },
+      // The honors of the month and teacher chosen in «تقارير الحلقات».
       honorRows() {
-        return this.data ? this.data.honors.filter(h => h.month === this.honMonth) : [];
+        return this.data ? this.data.honors.filter(h => h.month === this.repMonth
+          && (this.repTeacher === '*' || h.teacher === this.repTeacher)) : [];
       },
       // Over the year, most first; a tie goes by name.
       honorRanking() {
@@ -1370,18 +1230,13 @@
         });
         return Object.values(by).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'ar'));
       },
-      addHonor() {
-        const s = this.honorStudents().find(x => x.key === this.honKey);
-        if (!s) {
-          this.error = 'اختر الطالب.';
-          this.$nextTick(() => this.focusEl('error'));
-          return;
-        }
+      addHonor(s) {
         const date = this.honDate.trim();
-        this.call('addHonor', { teacher: this.honTeacher, key: s.key, date, reason: this.honReason }, () => {
+        this.call('addHonor', { teacher: s.teacher, key: s.key, date, reason: this.honReason }, () => {
           this.honReason = '';
-          this.honMonth = date.slice(0, 7);
-          return 'سُجّل تكريم ' + s.name + ' في ' + date + '.';
+          this.openRow = '';
+          this.focusSoon('students-h');
+          return 'سُجّل تكريم ' + s.name + ' في ' + date + '، ويظهر في تكريمات شهره تحت «تقارير الحلقات».';
         });
       },
       askDeleteHonor(h) {
