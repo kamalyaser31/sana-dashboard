@@ -13,7 +13,9 @@ import os
 import sys
 from playwright.sync_api import sync_playwright
 
-CHROME_PATH = r"C:\Users\Administrator\AppData\Local\Google\Chrome\Application\chrome.exe"
+CHROME_PATH = (
+    r"C:\Users\Administrator\AppData\Local\Google\Chrome\Application\chrome.exe"
+)
 HTML_PATH = os.path.abspath(
     os.path.join(os.path.dirname(__file__), "index.html")
 ).replace("\\", "/")
@@ -51,7 +53,6 @@ SAMPLE_DATA = {
     "log": [],
     "unpriced": [],
     "expenses": [],
-    "aliases": [],
     "pay": [],
     "teachers": [
         {
@@ -96,9 +97,11 @@ def run_mobile_tests():
         page.on("pageerror", lambda e: console_errors.append(f"PageError: {e}"))
         page.on(
             "console",
-            lambda m: console_errors.append(f"ConsoleError: {m.text}")
-            if m.type == "error"
-            else None,
+            lambda m: (
+                console_errors.append(f"ConsoleError: {m.text}")
+                if m.type == "error"
+                else None
+            ),
         )
 
         url = f"file:///{HTML_PATH}"
@@ -106,25 +109,21 @@ def run_mobile_tests():
         page.wait_for_timeout(1000)
 
         # 1. Initialize with session and sample data
-        page.evaluate(
-            f"""() => {{
+        page.evaluate(f"""() => {{
             const comp = Alpine.$data(document.querySelector('[x-data]'));
             comp.token = 'test_token';
             comp.who = 'مشرف النظام';
             comp.teacher = '*';
             comp.load({json.dumps(SAMPLE_DATA)});
-        }}"""
-        )
+        }}""")
         page.wait_for_timeout(300)
 
         # Baseline: all sections closed
-        base_metrics = page.evaluate(
-            """() => ({
+        base_metrics = page.evaluate("""() => ({
             scrollWidth: document.documentElement.scrollWidth,
             clientWidth: document.documentElement.clientWidth,
             scrollLeft: document.documentElement.scrollLeft
-        })"""
-        )
+        })""")
         assert (
             base_metrics["scrollWidth"] == base_metrics["clientWidth"]
         ), f"Baseline document overflowed: {base_metrics}"
@@ -137,8 +136,7 @@ def run_mobile_tests():
         page.click('button[aria-controls="students-body"]')
         page.wait_for_timeout(500)
 
-        students_metrics = page.evaluate(
-            """() => ({
+        students_metrics = page.evaluate("""() => ({
             scrollWidth: document.documentElement.scrollWidth,
             clientWidth: document.documentElement.clientWidth,
             scrollLeft: document.documentElement.scrollLeft,
@@ -146,8 +144,7 @@ def run_mobile_tests():
             tableContainerWidth: document.querySelector('#students .overflow-x-auto').offsetWidth,
             tableWidth: document.querySelector('#students table').offsetWidth,
             tableScrollWidth: document.querySelector('#students .overflow-x-auto').scrollWidth
-        })"""
-        )
+        })""")
 
         print("  [Students Section Open Metrics]:", students_metrics)
 
@@ -171,7 +168,27 @@ def run_mobile_tests():
             students_metrics["tableScrollWidth"]
             > students_metrics["tableContainerWidth"]
         ), "Table should be horizontally scrollable inside its container"
-        print("  ✓ Students section: zero document overflow; table scrolls inside container.")
+        print(
+            "  ✓ Students section: zero document overflow; table scrolls inside container."
+        )
+
+        # 2b. A name typed in edit mode is saved with the others, as n0.
+        page.click("#edit-toggle")
+        page.fill("#nm-0", "اسم مصحح")
+        sent = page.evaluate("""() => {
+            const comp = Alpine.$data(document.querySelector('[x-data]'));
+            let args = null;
+            comp.call = (action, a) => { args = { action, a }; };
+            comp.saveStudents();
+            const label = document.querySelector('label[for="nm-0"]').textContent;
+            return { changed: comp.changedStudents().length, args, label };
+        }""")
+        assert sent["changed"] == 1, f"One student should change: {sent}"
+        assert sent["args"]["action"] == "saveStudents", sent
+        assert sent["args"]["a"]["n0"] == "اسم مصحح", f"Name not sent: {sent}"
+        assert sent["label"].startswith("الاسم الصحيح لـ"), f"Name field label: {sent}"
+        page.click("#edit-toggle")
+        print("  ✓ Edit mode: the name field is labelled and saved as n0.")
 
         # 3. Test all other sections
         sections = [
@@ -180,7 +197,6 @@ def run_mobile_tests():
             "absent",
             "history",
             "honors",
-            "fix-name",
             "rates",
             "log",
         ]
@@ -189,13 +205,11 @@ def run_mobile_tests():
             if page.locator(btn).count() > 0:
                 page.click(btn)
                 page.wait_for_timeout(200)
-                sec_metrics = page.evaluate(
-                    """() => ({
+                sec_metrics = page.evaluate("""() => ({
                     scrollWidth: document.documentElement.scrollWidth,
                     clientWidth: document.documentElement.clientWidth,
                     scrollLeft: document.documentElement.scrollLeft
-                })"""
-                )
+                })""")
                 assert (
                     sec_metrics["scrollWidth"] == sec_metrics["clientWidth"]
                 ), f"Section {sec} caused document overflow: {sec_metrics}"

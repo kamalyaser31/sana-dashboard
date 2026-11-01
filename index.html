@@ -285,7 +285,7 @@
                 :aria-pressed="String(editMode)" @click="toggleEditMode()" x-text="editMode ? 'أنهِ التعديل' : 'تعديل البيانات'"></button>
       </div>
       <p x-show="editMode" class="mb-2 flex flex-wrap gap-2 items-center">
-        <span>غيّر الجنس وسنة الميلاد والهاتف في الصفوف، ثم احفظ.</span>
+        <span>صحّح الاسم أو غيّر الجنس وسنة الميلاد والهاتف في الصفوف، ثم احفظ.</span>
         <button type="button" class="border-2 border-gray-900 px-3 py-1.5 min-h-[38px] font-bold rounded disabled:opacity-50"
                 :disabled="busy || !changedStudents().length" aria-describedby="students-changed"
                 @click="saveStudents()">احفظ الطلاب</button>
@@ -297,7 +297,7 @@
           <thead><tr>
             <th scope="col" class="nowrap">الاسم</th><th scope="col" class="nowrap" x-show="teacher === '*'">المعلم</th>
             <th scope="col" class="nowrap">آخر ظهور</th><th scope="col" class="nowrap">أيام الغياب</th><th scope="col" class="nowrap">الحضور</th>
-            <th scope="col" class="nowrap" x-show="editMode">الجنس</th><th scope="col" class="nowrap" x-show="editMode">سنة الميلاد</th><th scope="col" class="nowrap" x-show="editMode">الهاتف</th>
+            <th scope="col" class="nowrap" x-show="editMode">الاسم الصحيح</th><th scope="col" class="nowrap" x-show="editMode">الجنس</th><th scope="col" class="nowrap" x-show="editMode">سنة الميلاد</th><th scope="col" class="nowrap" x-show="editMode">الهاتف</th>
             <th scope="col" class="nowrap">إجراءات</th>
           </tr></thead>
           <!-- One tbody per student: its row, then its actions when open. -->
@@ -307,6 +307,13 @@
                 <th scope="row" class="nowrap"><span x-text="s.name"></span><span x-show="s.isNew"> (جديد)</span><span x-show="!s.former && !isActive(s)"> (غائب)</span><span x-show="s.former" x-text="' (من سنة ' + (Number(year) - 1) + ')'"></span></th>
                 <td x-show="teacher === '*'" class="nowrap" x-text="s.teacher"></td>
                 <td class="nowrap" x-text="s.lastSeen"></td><td class="nowrap" x-text="daysAway(s)"></td><td class="nowrap" x-text="s.attendance"></td>
+                <td x-show="editMode" class="nowrap">
+                  <template x-if="editMode && !s.former"><div>
+                    <label :for="'nm-' + i" class="sr-only" x-text="'الاسم الصحيح لـ ' + s.name"></label>
+                    <input :id="'nm-' + i" type="text" maxlength="60"
+                           x-model="names[k(s)]" class="border border-gray-700 p-1 w-40 min-h-[36px] text-sm">
+                  </div></template>
+                </td>
                 <td x-show="editMode" class="nowrap">
                   <template x-if="editMode && !s.former"><div>
                     <label :for="'g-' + i" class="sr-only" x-text="'جنس ' + s.name"></label>
@@ -411,38 +418,6 @@
                       <button type="submit" class="border-2 border-gray-900 px-3 py-1 font-bold" :disabled="busy">سجّل التكريم</button>
                     </form>
 
-                    <form x-show="!s.former" @submit.prevent="reviewAlias(s)" class="flex flex-col gap-3 max-w-xl">
-                      <h4 class="font-bold">صحّح الاسم</h4>
-                      <fieldset>
-                        <legend class="font-bold">الاسم الصحيح</legend>
-                        <label class="me-4"><input type="radio" value="list" x-model="aliasMode"> من طلاب المعلم</label>
-                        <label><input type="radio" value="typed" x-model="aliasMode"> أكتبه</label>
-                        <div x-show="aliasMode === 'list'" class="mt-2">
-                          <label :for="'alias-to-list-' + i" class="sr-only">الاسم الصحيح من القائمة</label>
-                          <select :id="'alias-to-list-' + i" x-model="aliasToList" class="border border-gray-700 p-1 w-full">
-                            <option value="">-- اختر --</option>
-                            <template x-for="o in aliasTargets(s)" :key="k(o)">
-                              <option :value="o.name" x-text="o.name + '، حضر ' + o.attendance + (isActive(o) ? '' : '، غائب')"></option>
-                            </template>
-                          </select>
-                        </div>
-                        <div x-show="aliasMode === 'typed'" class="mt-2">
-                          <label :for="'alias-to-typed-' + i" class="sr-only">اكتب الاسم الصحيح</label>
-                          <input :id="'alias-to-typed-' + i" type="text" x-model="aliasToTyped" class="border border-gray-700 p-1 w-full">
-                        </div>
-                      </fieldset>
-                      <button type="submit" class="border-2 border-gray-900 px-3 py-1 font-bold self-start" :disabled="busy">راجع قبل الدمج</button>
-                      <div x-show="review && review.k === k(s)" :id="'alias-review-' + i" tabindex="-1" class="border-2 border-gray-900 p-3"
-                           role="group" :aria-labelledby="'review-h-' + i">
-                        <h5 :id="'review-h-' + i" class="font-bold">راجع الدمج</h5>
-                        <p x-text="review && review.k === k(s) ? reviewText() : ''"></p>
-                        <div class="flex gap-3 mt-2">
-                          <button type="button" class="border-2 border-gray-900 px-3 py-1 font-bold" :disabled="busy" @click="confirmAlias()">ادمج الآن</button>
-                          <button type="button" class="border border-gray-900 px-3 py-1" @click="review = null; focusEl('act-h-' + i)">إلغاء</button>
-                        </div>
-                      </div>
-                    </form>
-
                     <button type="button" class="border border-gray-900 px-3 py-1 self-start" @click="toggleRow(s, i)">أغلق الإجراءات</button>
                   </div>
                 </td>
@@ -458,28 +433,6 @@
         <span id="students-download-hint">ملف CSV لـ Excel بكل الأعمدة.</span>
       </p>
 
-      <div class="overflow-x-auto mt-6">
-        <table class="text-sm">
-          <caption>الأسماء البديلة المحفوظة</caption>
-          <thead><tr><th scope="col" class="nowrap">المعلم</th><th scope="col" class="nowrap">كما ورد</th><th scope="col" class="nowrap">الصحيح</th><th scope="col" class="nowrap">طُبّق</th><th scope="col" class="nowrap">حذف</th></tr></thead>
-          <tbody>
-            <template x-for="(a, i) in data.aliases" :key="i">
-              <tr>
-                <td class="nowrap" x-text="a.teacher"></td><th scope="row" class="nowrap" x-text="a.from"></th><td class="nowrap" x-text="a.to"></td>
-                <td class="nowrap" x-text="a.applied ? 'نعم' : 'لم يُطبَّق بعد'"></td>
-                <td class="nowrap">
-                  <button type="button" class="border border-gray-900 px-2.5 py-1 min-h-[36px] text-xs font-semibold rounded hover:bg-gray-100" x-show="pendingDelete !== i"
-                          :aria-label="'احذف البديل ' + a.from" @click="pendingDelete = i">احذف</button>
-                  <button type="button" class="border-2 border-red-800 px-2.5 py-1 min-h-[36px] text-xs font-bold text-red-800 rounded hover:bg-red-50" x-show="pendingDelete === i"
-                          :aria-label="'تأكيد حذف البديل ' + a.from + '؛ لا يفصل ما دُمج'" :disabled="busy"
-                          @click="deleteAlias(a)">تأكيد الحذف</button>
-                </td>
-              </tr>
-            </template>
-          </tbody>
-        </table>
-        <p x-show="!data.aliases.length">لا بدائل بعد.</p>
-      </div>
       </div>
     </section>
 
@@ -661,9 +614,9 @@
     return {
       data: null, status: '', error: '', busy: false, year: '', test: false,
       token: '', who: '', loginName: '', loginPassword: '',
-      month: '', teacher: '', repTeacher: '*', repMonth: '', search: '', view: 'active', openRow: '', editMode: false, genders: {},
+      month: '', teacher: '', repTeacher: '*', repMonth: '', search: '', view: 'active', openRow: '', editMode: false, names: {}, genders: {},
       details: {},
-      aliasMode: 'list', aliasToList: '', aliasToTyped: '', review: null, pendingDelete: -1,
+
       editing: null, editHours: '', editMinutes: '', editStudents: '', pendingReport: -1,
       honDate: '', honReason: '', pendingHonor: -1, honorAmountInput: '',
       rates: {}, fixedAmounts: {}, payMonth: '', payPassword: '', payEditing: false,
@@ -776,10 +729,12 @@
         this.data = data;
         // The script shows last year while the new one has no registry yet; later writes go to that year.
         this.year = data.year;
+        this.names = {};
         this.genders = {};
         this.details = {};
         data.teachers.forEach(t => t.students.forEach(s => {
           s.teacher = t.name;
+          this.names[t.name + '|' + s.key] = s.name;
           this.genders[t.name + '|' + s.key] = s.gender;
           this.details[t.name + '|' + s.key] = { birthYear: String(s.birthYear || ''), phone: s.phone || '' };
         }));
@@ -802,12 +757,10 @@
         (data.fixed || []).forEach(f => { this.fixedAmounts[f.item] = String(f.amount); });
         const payMonths = this.payMonths();
         if (payMonths.indexOf(this.payMonth) === -1) this.payMonth = payMonths.length ? payMonths[payMonths.length - 1] : '';
-        this.pendingDelete = -1;
         this.editing = null;
         this.pendingReport = -1;
         if (!this.honDate) this.honDate = this.dayInYear();
         this.pendingHonor = -1;
-        this.review = null;
         this.honorAmountInput = String(data.honorAmount || '');
         const msgMonths = this.messageMonths();
         if (msgMonths.indexOf(this.msgMonth) === -1) {
@@ -973,22 +926,18 @@
           .filter(s => this.inView(s) && (!q || this.nameKey(s.name).indexOf(q) !== -1))
           .sort((a, b) => (a.lastSeen < b.lastSeen ? 1 : a.lastSeen > b.lastSeen ? -1 : 0));
       },
-      // The table turns into fields for gender, birth year and phone, and back after saving.
+      // The table turns into fields for name, gender, birth year and phone, and back after saving.
       toggleEditMode() {
         this.editMode = !this.editMode;
         this.status = this.editMode ? 'الجدول للتعديل الآن.' : 'الجدول للقراءة.';
       },
       studentColumns() {
-        return 5 + (this.teacher === '*' ? 1 : 0) + (this.editMode ? 3 : 0);
+        return 5 + (this.teacher === '*' ? 1 : 0) + (this.editMode ? 4 : 0);
       },
       // A row's actions open under it; focus goes to their heading, and back to the button on closing.
       toggleRow(s, i) {
         const open = this.openRow !== this.k(s);
         this.openRow = open ? this.k(s) : '';
-        this.review = null;
-        this.aliasMode = 'list';
-        this.aliasToList = '';
-        this.aliasToTyped = '';
         this.honReason = '';
         this.focusSoon(open ? 'act-h-' + i : 'act-btn-' + i);
       },
@@ -1112,14 +1061,15 @@
       k(s) {
         return s.teacher + '|' + s.key;
       },
-      // Every student whose gender, birth year or phone differs from the sheet, in all teachers and views (U-03).
+      // Every student whose name, gender, birth year or phone differs from the sheet, in all teachers and views (U-03).
       changedStudents() {
         if (!this.data) return [];
         const out = [];
         this.data.teachers.forEach(t => t.students.forEach(s => {
           const d = this.details[this.k(s)];
           if (!d) return;
-          if (this.genders[this.k(s)] !== s.gender || d.birthYear.trim() !== String(s.birthYear || '')
+          if ((this.names[this.k(s)] || '').trim() !== s.name
+            || this.genders[this.k(s)] !== s.gender || d.birthYear.trim() !== String(s.birthYear || '')
             || d.phone.trim() !== (s.phone || '')) out.push(s);
         }));
         return out;
@@ -1133,7 +1083,8 @@
         const args = {};
         list.forEach((s, i) => {
           const d = this.details[this.k(s)];
-          Object.assign(args, { ['t' + i]: s.teacher, ['k' + i]: s.key, ['g' + i]: this.genders[this.k(s)],
+          Object.assign(args, { ['t' + i]: s.teacher, ['k' + i]: s.key, ['n' + i]: this.names[this.k(s)],
+            ['g' + i]: this.genders[this.k(s)],
             ['b' + i]: d.birthYear, ['p' + i]: d.phone });
         });
         this.call('saveStudents', args, () => {
@@ -1141,49 +1092,6 @@
           this.focusSoon('edit-toggle');
           return 'حُفظت بيانات ' + list.length + ' طالباً.';
         });
-      },
-
-      aliasTo() {
-        return (this.aliasMode === 'list' ? this.aliasToList : this.aliasToTyped).trim();
-      },
-      // The teacher's other students, any of whom the wrong name may belong to, the absent too.
-      aliasTargets(s) {
-        const t = this.data.teachers.find(x => x.name === s.teacher);
-        return t ? t.students.filter(o => o.key !== s.key).sort((a, b) => a.name.localeCompare(b.name, 'ar')) : [];
-      },
-      reviewAlias(s) {
-        const to = this.aliasTo();
-        if (!to) {
-          this.error = 'اختر الاسم الصحيح أو اكتبه.';
-          this.$nextTick(() => this.focusEl('error'));
-          return;
-        }
-        const i = this.shownStudents().findIndex(x => this.k(x) === this.k(s));
-        this.review = { k: this.k(s), teacher: s.teacher, from: s, to: this.aliasTargets(s).find(o => o.name === to) || null, toName: to };
-        this.focusSoon('alias-review-' + i);
-      },
-      reviewText() {
-        const r = this.review;
-        const row = s => 'حضر ' + s.attendance + ' مرة، من ' + s.firstSeen + ' إلى ' + s.lastSeen;
-        const from = '«' + r.from.name + '» (' + row(r.from) + ')';
-        return r.to
-          ? 'سيُدمج ' + from + ' في «' + r.to.name + '» (' + row(r.to) + ')، ويبقى جنس الصحيح وخاناته.'
-          : 'لا صف باسم «' + r.toName + '»، فيُعاد تسمية ' + from + ' إليه.';
-      },
-      confirmAlias() {
-        const alias = { teacher: this.review.teacher, from: this.review.from.name, to: this.review.toName };
-        this.review = null;
-        this.call('applyAlias', alias, result => {
-          this.openRow = '';
-          this.aliasToList = '';
-          this.aliasToTyped = '';
-          this.focusSoon('students-h');
-          const word = { merged: 'دُمج', renamed: 'أُعيدت تسمية', absent: 'لم يوجد' }[result.outcome] || result.outcome;
-          return word + ' «' + alias.from + '» ← «' + alias.to + '». ويُطبَّق البديل على التقارير الآتية.';
-        });
-      },
-      deleteAlias(a) {
-        this.call('deleteAlias', { teacher: a.teacher, from: a.from }, 'حُذف البديل «' + a.from + '».');
       },
 
       // A blank rate is no change: a rate is never cleared from here.
