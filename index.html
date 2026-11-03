@@ -35,7 +35,7 @@
           <template x-for="y in data.years" :key="y"><option :value="y" :selected="y === year" x-text="y"></option></template>
         </select>
       </span></template>
-      <span x-show="data" x-text="'اليوم ' + (data ? data.today : '')"></span>
+      <span x-show="data" x-text="'اليوم ' + ltr(data ? data.today : '')"></span>
       <button type="button" class="border border-gray-900 px-3 py-1 min-h-[36px] inline-flex items-center text-sm font-semibold rounded hover:bg-gray-100" @click="logout()">اخرج</button>
     </div>
     <p x-show="test" x-cloak class="font-bold border-2 border-gray-900 p-2">وضع الاختبار: هذه بيانات مجلد الاختبار، لا بيانات الأكاديمية.</p>
@@ -86,7 +86,7 @@
       </select>
       <div class="overflow-x-auto">
         <table class="text-sm">
-          <caption x-text="'أرقام شهر ' + month"></caption>
+          <caption x-text="'أرقام شهر ' + ltr(month)"></caption>
           <thead><tr><th scope="col" class="nowrap">المعلم</th><template x-for="h in NUMBER_COLUMNS" :key="h"><th scope="col" class="nowrap" x-text="h"></th></template></tr></thead>
           <tbody>
             <template x-for="(row, i) in monthRows()" :key="i">
@@ -128,7 +128,7 @@
       </div>
       <div class="overflow-x-auto" x-show="reportRows().length">
         <table class="text-sm">
-          <caption x-text="'تقارير ' + (repTeacher === '*' ? 'كل المعلمين' : repTeacher) + ' في ' + (repMonth || 'الشهر الحالي')"></caption>
+          <caption x-text="'تقارير ' + (repTeacher === '*' ? 'كل المعلمين' : repTeacher) + ' في ' + (repMonth ? ltr(repMonth) : 'الشهر الحالي')"></caption>
           <thead><tr>
             <th scope="col" class="nowrap" x-show="repTeacher === '*'">المعلم</th>
             <th scope="col" class="nowrap">تاريخ التقرير</th><th scope="col" class="nowrap">نوع الحلقة / الفترة</th>
@@ -212,7 +212,7 @@
       <p class="mb-2">يُضاف التكريم من «إجراءات» الطالب في قسم «الطلاب».</p>
       <div class="overflow-x-auto" x-show="honorRows().length">
         <table class="text-sm">
-          <caption x-text="'تكريمات ' + (repTeacher === '*' ? 'كل المعلمين' : repTeacher) + ' في ' + repMonth + '، الأحدث أولاً: ' + honorRows().length"></caption>
+          <caption x-text="'تكريمات ' + (repTeacher === '*' ? 'كل المعلمين' : repTeacher) + ' في ' + ltr(repMonth) + '، الأحدث أولاً: ' + honorRows().length"></caption>
           <thead><tr>
             <th scope="col" class="nowrap">التاريخ</th><th scope="col" class="nowrap">الطالب</th><th scope="col" class="nowrap">المعلم</th><th scope="col">السبب</th><th scope="col" class="nowrap">إجراء</th>
           </tr></thead>
@@ -347,7 +347,8 @@
               </tr>
               <tr x-show="openRow === k(s)">
                 <td :colspan="studentColumns()" class="bg-gray-50">
-                  <div :id="'act-' + i" class="flex flex-col gap-4 py-2" x-show="openRow === k(s)">
+                  <!-- The row spans the whole wide table; held to the screen's width so the panel stays in view. -->
+                  <div :id="'act-' + i" class="flex flex-col gap-4 py-2 sticky right-0 max-w-[calc(100vw_-_3rem)]" x-show="openRow === k(s)">
                     <h3 :id="'act-h-' + i" tabindex="-1" class="font-bold" x-text="'إجراءات ' + s.name + ' عند ' + s.teacher"></h3>
 
                     <dl class="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-1 max-w-3xl">
@@ -409,7 +410,7 @@
                         <label :for="'hon-date-' + i" class="font-bold block">تاريخ التكريم</label>
                         <input :id="'hon-date-' + i" type="text" inputmode="numeric" dir="ltr" x-model="honDate" required
                                class="border border-gray-700 p-1 w-32" :aria-describedby="'hon-date-hint-' + i">
-                        <p :id="'hon-date-hint-' + i">مثل 2026-10-25</p>
+                        <p :id="'hon-date-hint-' + i">مثل <span dir="ltr">2026-10-25</span></p>
                       </div>
                       <div>
                         <label :for="'hon-reason-' + i" class="font-bold block">السبب (اختياري)</label>
@@ -468,7 +469,7 @@
       </div>
       <div class="overflow-x-auto mt-2" x-show="payRows().length">
         <table class="text-sm">
-          <caption x-text="'مستحقات المعلمين في ' + payMonth + ' بالجنيه'"></caption>
+          <caption x-text="'مستحقات المعلمين في ' + ltr(payMonth) + ' بالجنيه'"></caption>
           <thead><tr><th scope="col" class="nowrap">المعلم</th><th scope="col" class="nowrap">الساعات</th><th scope="col" class="nowrap">السعر</th><th scope="col" class="nowrap">المستحق</th></tr></thead>
           <tbody>
             <template x-for="p in payRows()" :key="p.teacher">
@@ -563,18 +564,17 @@
                 :aria-expanded="String(isOpen('log'))" @click="toggleSection('log')"><span aria-hidden="true" x-text="isOpen('log') ? '− ' : '+ '"></span>سجل التعديلات</button>
       </h2>
       <div id="log-body" x-show="isOpen('log')">
-      <div class="overflow-x-auto">
-        <table class="text-sm">
-          <caption>آخر التعديلات، الأحدث أولاً</caption>
-          <thead><tr><th scope="col" class="nowrap">الوقت</th><th scope="col" class="nowrap">الاسم</th><th scope="col" class="nowrap">الفعل</th><th scope="col">التفاصيل</th></tr></thead>
-          <tbody>
-            <template x-for="(e, i) in data.log" :key="i">
-              <tr><th scope="row" class="nowrap" x-text="e.time"></th><td class="nowrap" x-text="e.name"></td><td class="nowrap" x-text="e.action"></td><td x-text="e.details"></td></tr>
-            </template>
-          </tbody>
-        </table>
-        <p x-show="!data.log.length">لا تعديلات بعد.</p>
-      </div>
+      <!-- A list, not a table: the long details fit a phone without sideways scrolling. -->
+      <p id="log-cap" class="font-semibold mb-2">آخر التعديلات، الأحدث أولاً</p>
+      <ol aria-labelledby="log-cap" class="text-sm max-w-[80ch]">
+        <template x-for="(e, i) in data.log" :key="i">
+          <li class="border-b border-gray-300 py-2">
+            <p><span class="font-bold" x-text="e.time"></span>، <span x-text="e.name"></span>، <span x-text="e.action"></span></p>
+            <p class="break-words" x-text="e.details"></p>
+          </li>
+        </template>
+      </ol>
+      <p x-show="!data.log.length">لا تعديلات بعد.</p>
       </div>
     </section>
   </div></template>
@@ -841,6 +841,10 @@
       },
       months() {
         return this.data ? Array.from(new Set(this.data.monthly.map(r => r[0]))).sort() : [];
+      },
+      // A date after Arabic words shows reversed (25-10-2026) unless isolated as left-to-right.
+      ltr(s) {
+        return s ? '⁦' + s + '⁩' : '';
       },
       isOpen(id) {
         return this.openSections[id] === true;
