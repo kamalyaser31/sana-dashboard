@@ -61,7 +61,7 @@
             x-text="months.length ? 'شهر ' + monthName(card.month) + (card.current ? ' (جارٍ)' : '') : 'تبرّع وتواصل'">تبرّع وتواصل</h2>
         <div x-show="months.length" x-cloak>
           <p class="font-amiri font-bold text-[30px] sm:text-[44px] leading-[1.55] max-w-[30ch]" x-text="monthSentence()"></p>
-          <p class="mt-6 text-[#3d555d] max-w-[60ch]">تُحسب الأرقام آلياً من تقارير المعلمين، وتثبت أرقام كل شهر بعد الخامس من الشهر الذي يليه فلا تتغير.</p>
+          <p class="mt-6 text-[#3d555d] max-w-[60ch]">تُحسب الأرقام آلياً من تقارير المعلمين، وتثبت أرقام كل شهر في الثالث من الشهر الذي يليه فلا تتغير.</p>
         </div>
         <p class="mt-6 max-w-[60ch]">لمن أراد أن يتبرع للأكاديمية أو يسأل عنها:</p>
         <div class="flex flex-wrap gap-3 mt-4">
@@ -79,6 +79,14 @@
       <section aria-labelledby="year-h" class="pt-12" x-show="totals">
         <h2 id="year-h" class="font-amiri text-[32px] font-bold mb-3" x-text="'من ' + firstMonthName() + ' حتى الآن'"></h2>
         <p class="text-xl max-w-[62ch]" x-text="yearSentence()"></p>
+        <p class="mt-6" x-show="hasCurrent()">
+          <button type="button" :aria-pressed="String(showCurrent)" @click="showCurrent = !showCurrent"
+                  class="inline-flex items-center gap-2 min-h-[44px] px-5 rounded-lg border-2 border-[#006655] font-semibold"
+                  :class="showCurrent ? 'bg-[#006655] text-white' : 'text-[#006655]'"
+                  aria-describedby="current-hint">اعرض الشهر الجاري</button>
+          <span id="current-hint" class="block mt-2 text-[#3d555d]"
+                x-text="'تبدأ الأرقام بالأشهر التي انتهت؛ والزر يضيف ' + monthName(thisMonth()) + ' حتى اليوم، بلا مصروف ولا كفالة حتى ينتهي.'"></span>
+        </p>
       </section>
 
       <section aria-labelledby="charts-h" class="pt-12">
@@ -92,7 +100,7 @@
                 <caption x-text="c.label + ' في كل شهر'"></caption>
                 <thead><tr><th scope="col">الشهر</th><th scope="col" x-text="c.label"></th></tr></thead>
                 <tbody>
-                  <template x-for="m in months" :key="m.month">
+                  <template x-for="m in shown()" :key="m.month">
                     <tr><th scope="row" x-text="monthName(m.month)"></th><td x-text="show(m, c)"></td></tr>
                   </template>
                 </tbody>
@@ -112,9 +120,9 @@
               <template x-for="c in MONTH_COLUMNS" :key="c.key"><th scope="col" x-text="c.label"></th></template>
             </tr></thead>
             <tbody>
-              <template x-for="m in months" :key="m.month">
+              <template x-for="m in shown()" :key="m.month">
                 <tr>
-                  <th scope="row" x-text="monthName(m.month) + (isFrozen(m.month) ? '' : ' (جارٍ)')"></th>
+                  <th scope="row" x-text="monthName(m.month) + monthTag(m.month)"></th>
                   <template x-for="c in MONTH_COLUMNS" :key="c.key"><td x-text="show(m, c)"></td></template>
                 </tr>
               </template>
@@ -152,7 +160,10 @@
     },
   };
   const ACADEMY = 'الأكاديمية';
-  const FREEZE_DAY = 5;
+  // The last day a month takes edits: it freezes on the 3rd of the next (Kamal, 2026-11-03).
+  const FREEZE_DAY = 2;
+  // The first month whose students are counted.
+  const STUDENTS_SINCE = 'أكتوبر 2026';
   const MONTH_NAMES = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
   const MONTH_COLUMNS = [
     { key: 'الطلاب الجدد', label: 'الطلاب الجدد' },
@@ -177,8 +188,9 @@
     { term: 'الحضور الكلي', meaning: 'مجموع الحضور في كل الحلقات؛ فمن حضر عشر حلقات عُدّ عشراً.' },
     { term: 'مصروف الشهر', meaning: 'أجور المعلمين، والإدارة، والتكريمات، وسائر المصروفات.' },
     { term: 'تكلفة ساعة التدريس', meaning: 'مصروف الشهر مقسوماً على ساعات التدريس.' },
-    { term: 'كفالة الطالب في الشهر', meaning: 'مصروف الشهر مقسوماً على من حضر من الطلاب.' },
-    { term: 'لا يُحسب', meaning: 'رقم لم يكتمل حسابه لذلك الشهر، كالمصروف قبل أكتوبر 2026.' },
+    { term: 'كفالة الطالب في الشهر', meaning: 'مصروف الشهر مقسوماً على من حضر من الطلاب، ويُحسب بعد انتهاء الشهر.' },
+    { term: 'لا يُحسب', meaning: 'رقم لم يُعرف لذلك الشهر، كالمصروف قبل أكتوبر 2026، والطلاب قبل أن يبدأ عدّهم في ' + STUDENTS_SINCE + '.' },
+    { term: 'بعد نهاية الشهر', meaning: 'مصروف الشهر الجاري وكفالته وتكلفة ساعته؛ تُحسب حين ينتهي، لأن نصف الشهر يعطي رقماً غير صحيح.' },
   ];
   const CHART_COLUMNS = [
     { key: 'من حضر في الشهر', label: 'من حضر من الطلاب' },
@@ -223,7 +235,7 @@
   function donors() {
     return {
       MONTH_COLUMNS, TOTAL_COLUMNS, CHART_COLUMNS, TERMS,
-      year: '', months: [], totals: null, updated: '', status: '', error: '',
+      year: '', months: [], totals: null, updated: '', status: '', error: '', showCurrent: false,
       card: { month: '', current: false },
 
       init() {
@@ -251,12 +263,10 @@
               .filter(r => r['المعلم'] === ACADEMY && /^\d{4}-\d{2}$/.test(r['الشهر']))
               .forEach(r => { byMonth[r['الشهر']] = r; });
             this.months = Object.keys(byMonth).sort().map(m => Object.assign({ month: m }, byMonth[m]));
-            const frozen = this.months.filter(m => this.isFrozen(m.month));
-            const latest = this.months[this.months.length - 1];
-            let pick = frozen.length ? frozen[frozen.length - 1] : latest;
-            // A settled month without a student count (September 2026) makes a thin headline; the month in progress says more.
-            if (pick && !this.number(pick['من حضر في الشهر'])) pick = latest;
-            this.card = { month: pick ? pick.month : '', current: pick ? !this.isFrozen(pick.month) : false };
+            // The last month that has ended, not the one in progress (Kamal, 2026-11-03).
+            const ended = this.months.filter(m => !this.isCurrent(m.month));
+            const pick = ended.length ? ended[ended.length - 1] : this.months[this.months.length - 1];
+            this.card = { month: pick ? pick.month : '', current: pick ? this.isCurrent(pick.month) : false };
             this.status = this.months.length ? 'حُمّلت أرقام ' + this.year + '.' : 'لا أرقام لهذه السنة بعد.';
           })
           .catch(() => {
@@ -266,7 +276,25 @@
             this.$nextTick(() => document.getElementById('error').focus());
           });
       },
-      // A month's numbers stop changing after the 5th of the next month.
+      thisMonth() {
+        const now = new Date();
+        return now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+      },
+      isCurrent(month) {
+        return month >= this.thisMonth();
+      },
+      hasCurrent() {
+        return this.months.some(m => this.isCurrent(m.month));
+      },
+      // The ended months, and the one in progress when the donor asks for it.
+      shown() {
+        return this.months.filter(m => this.showCurrent || !this.isCurrent(m.month));
+      },
+      monthTag(month) {
+        if (this.isCurrent(month)) return ' (جارٍ)';
+        return this.isFrozen(month) ? '' : ' (يثبت في الثالث من الشهر التالي)';
+      },
+      // A month's numbers stop changing on the 3rd of the next month.
       isFrozen(month) {
         const [y, m] = month.split('-').map(Number);
         return new Date() >= new Date(y, m, FREEZE_DAY + 1);
@@ -283,6 +311,7 @@
       // A blank cell is a number the academy does not count, such as the expense before October 2026.
       show(row, c) {
         const n = this.number(row[c.key]);
+        if (n === null && c.money && row.month && this.isCurrent(row.month)) return 'بعد نهاية الشهر';
         if (n === null) return row[c.key] === undefined ? '' : 'لا يُحسب';
         if (c.percent) return Math.round(n * 100) + '٪';
         const text = n.toLocaleString('en-US', { maximumFractionDigits: 2 });
@@ -311,14 +340,15 @@
         if (!this.totals) return '';
         const total = key => this.show(this.totals, TOTAL_COLUMNS.find(c => c.key === key));
         const hours = this.number(this.totals['ساعات التدريس']);
-        return 'منذ ' + this.firstMonthName() + ' درس في الأكاديمية ' + total('عدد الطلاب الكلي') + ' من الطلاب، في '
-          + total('عدد الحلقات') + ' حلقة، وبلغت ساعات التدريس '
-          + (hours === null ? total('ساعات التدريس') : Math.round(hours).toLocaleString('en-US') + ' ساعة') + '.';
+        // The halaqat count from the first month, the students only from the registry's first day.
+        return 'منذ ' + this.firstMonthName() + ' عُقدت في الأكاديمية ' + total('عدد الحلقات') + ' حلقة، وبلغت ساعات التدريس '
+          + (hours === null ? total('ساعات التدريس') : Math.round(hours).toLocaleString('en-US') + ' ساعة')
+          + '. ومنذ ' + STUDENTS_SINCE + ' درس فيها ' + total('عدد الطلاب الكلي') + ' من الطلاب.';
       },
       // One series, one axis: bars from a zero baseline, each month's value in its tooltip.
       chart(c) {
         const W = 420, H = 200, top = 22, bottom = 28, side = 8;
-        const points = this.months.map(m => ({ month: m.month, value: this.number(m[c.key]) }));
+        const points = this.shown().map(m => ({ month: m.month, value: this.number(m[c.key]) }));
         const max = Math.max(1, ...points.map(p => p.value || 0));
         const slot = (W - 2 * side) / Math.max(1, points.length);
         const bar = Math.min(36, slot * 0.6);
